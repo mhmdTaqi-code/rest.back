@@ -1,0 +1,162 @@
+@model SmartDiningSystem.Application.Areas.Admin.Models.AdminAccountsIndexViewModel
+@{
+    ViewData["Title"] = "Accounts";
+}
+
+<div class="admin-page-header admin-page-header--actions">
+    <div>
+        <h1 class="h2 mb-1">Accounts</h1>
+        <p class="text-muted mb-0">All accounts are shown by default. Search is optional.</p>
+    </div>
+    <a class="btn btn-primary" asp-area="Admin" asp-controller="Accounts" asp-action="Create">Create Account</a>
+</div>
+
+<div class="card shadow-sm mb-4 admin-surface-card">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end admin-toolbar-form">
+            <div class="col-12 col-xl-5">
+                <label class="form-label fw-semibold" for="search">Search by name or phone</label>
+                <input class="form-control" id="search" name="search" value="@Model.SearchTerm" />
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label fw-semibold" for="role">Filter by role</label>
+                <select class="form-select" id="role" name="role">
+                    <option value="">All roles</option>
+                    @foreach (var role in Model.RoleOptions)
+                    {
+                        if (role.Selected)
+                        {
+                            <option value="@role.Value" selected>@role.Label</option>
+                        }
+                        else
+                        {
+                            <option value="@role.Value">@role.Label</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="d-flex gap-2 flex-wrap admin-toolbar-actions">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Accounts" asp-action="Index">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm admin-surface-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 admin-table-desktop">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Contact</th>
+                    <th>Role</th>
+                    <th>Badges</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Accounts.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No accounts matched the current filters.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var account in Model.Accounts)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@account.FullName</div>
+                            <div class="small text-muted">Created @account.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd")</div>
+                        </td>
+                        <td><code>@account.Username</code></td>
+                        <td>
+                            <div>@(account.PhoneNumber ?? "-")</div>
+                            <div class="small text-muted">@(account.Email ?? "-")</div>
+                        </td>
+                        <td><span class="badge text-bg-primary-subtle text-primary-emphasis">@account.Role</span></td>
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                @if (account.IsActive)
+                                {
+                                    <span class="badge text-bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">Inactive</span>
+                                }
+
+                                @if (account.IsPhoneVerified)
+                                {
+                                    <span class="badge text-bg-info">OTP Verified</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-warning">OTP Pending</span>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(account.RestaurantApprovalStatus))
+                                {
+                                    if (string.Equals(account.RestaurantApprovalStatus, "Approved", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge text-bg-success">Approved Restaurant</span>
+                                    }
+                                    else if (string.Equals(account.RestaurantApprovalStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge text-bg-warning">Restaurant Pending</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-danger">Restaurant Rejected</span>
+                                    }
+                                }
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-2 flex-wrap justify-content-end admin-row-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-area="Admin" asp-controller="Accounts" asp-action="Details" asp-route-id="@account.Id">View</a>
+                                <a class="btn btn-sm btn-outline-primary" asp-area="Admin" asp-controller="Accounts" asp-action="Edit" asp-route-id="@account.Id">Edit</a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteAccountModal-@account.Id">
+                                    Delete
+                                </button>
+                            </div>
+
+                            <div class="modal fade" id="deleteAccountModal-@account.Id" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h2 class="modal-title fs-5">Delete Account</h2>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-start">
+                                            <p class="mb-2">This will permanently delete <strong>@account.FullName</strong> if the relationship safety checks pass.</p>
+                                            <p class="text-muted mb-0">If the account has protected related data, the delete will be blocked and no data will be removed.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="post" asp-area="Admin" asp-controller="Accounts" asp-action="Delete" asp-route-id="@account.Id">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

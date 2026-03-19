@@ -1,0 +1,124 @@
+@model SmartDiningSystem.Application.Areas.Admin.Models.AdminAccountFormViewModel
+@{
+    ViewData["Title"] = "Create Account";
+}
+
+<div class="admin-page-header">
+    <div>
+        <h1 class="h2 mb-1">Create Account</h1>
+        <p class="text-muted mb-0">Manually add a new account to the database.</p>
+    </div>
+</div>
+
+<div class="admin-form-shell">
+    <div class="card shadow-sm admin-surface-card">
+        <div class="card-body p-4 p-lg-4">
+            <form method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="FullName"></label>
+                    <input class="form-control" asp-for="FullName" />
+                    <span class="text-danger small" asp-validation-for="FullName"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="PhoneNumber"></label>
+                    <input class="form-control" asp-for="PhoneNumber" />
+                    <span class="text-danger small" asp-validation-for="PhoneNumber"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="Email"></label>
+                    <input class="form-control" asp-for="Email" />
+                    <span class="text-danger small" asp-validation-for="Email"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="Username"></label>
+                    <input class="form-control" asp-for="Username" autocomplete="off" />
+                    <span class="text-danger small" asp-validation-for="Username"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="Password"></label>
+                    <input class="form-control" asp-for="Password" type="password" autocomplete="new-password" />
+                    <span class="text-danger small" asp-validation-for="Password"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="ConfirmPassword"></label>
+                    <input class="form-control" asp-for="ConfirmPassword" type="password" autocomplete="new-password" />
+                    <span class="text-danger small" asp-validation-for="ConfirmPassword"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="Role"></label>
+                    <select class="form-select" asp-for="Role">
+                        @foreach (var role in Model.RoleOptions)
+                        {
+                            if (role.Selected)
+                            {
+                                <option value="@role.Value" selected>@role.Label</option>
+                            }
+                            else
+                            {
+                                <option value="@role.Value">@role.Label</option>
+                            }
+                        }
+                    </select>
+                    <span class="text-danger small" asp-validation-for="Role"></span>
+                </div>
+
+                <div class="col-12 d-flex flex-column flex-md-row gap-4 pt-2">
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="IsActive" />
+                        <label class="form-check-label" asp-for="IsActive"></label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="IsPhoneVerified" />
+                        <label class="form-check-label" asp-for="IsPhoneVerified"></label>
+                    </div>
+                </div>
+
+                <partial name="_RestaurantFields" model="Model" />
+
+                <div class="col-12 d-flex gap-2 flex-wrap pt-2">
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                    <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Accounts" asp-action="Index">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const roleSelect = document.getElementById("Role");
+            const restaurantFields = document.getElementById("restaurant-fields");
+            const accountPhoneInput = document.getElementById("PhoneNumber");
+            const restaurantPhoneInput = document.getElementById("RestaurantPhoneNumber");
+
+            if (!roleSelect || !restaurantFields || !accountPhoneInput || !restaurantPhoneInput) {
+                return;
+            }
+
+            const toggleRestaurantFields = () => {
+                const requiresRestaurant = roleSelect.value === "RestaurantOwner";
+                restaurantFields.classList.toggle("d-none", !requiresRestaurant);
+            };
+
+            const syncRestaurantPhone = () => {
+                restaurantPhoneInput.value = accountPhoneInput.value;
+            };
+
+            roleSelect.addEventListener("change", toggleRestaurantFields);
+            accountPhoneInput.addEventListener("input", syncRestaurantPhone);
+            toggleRestaurantFields();
+            syncRestaurantPhone();
+        })();
+    </script>
+}

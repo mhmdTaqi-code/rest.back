@@ -1,0 +1,6 @@
+**/bin/
+**/obj/
+.buildtemp/
+appsettings.Development.json
+.env
+.env.*

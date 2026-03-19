@@ -1,0 +1,59 @@
+@model SmartDiningSystem.Application.Areas.Admin.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="admin-page-header">
+    <div>
+        <h1 class="h2 mb-1">Dashboard</h1>
+        <p class="text-muted mb-0">Simple admin home page.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100 admin-surface-card">
+            <div class="card-body">
+                <div class="admin-stat-card__label">Active Users</div>
+                <div class="admin-stat-card__value">@Model.ActiveUsers</div>
+                <div class="text-muted small mt-2">Active `User` accounts only.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100 admin-surface-card">
+            <div class="card-body">
+                <div class="admin-stat-card__label">Restaurant Records</div>
+                <div class="admin-stat-card__value">@Model.RestaurantRecords</div>
+                <div class="text-muted small mt-2">Real `Restaurant` rows in the database.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100 admin-surface-card">
+            <div class="card-body">
+                <div class="admin-stat-card__label">Active Restaurant Owners</div>
+                <div class="admin-stat-card__value">@Model.ActiveRestaurantOwners</div>
+                <div class="text-muted small mt-2">Active accounts with the `RestaurantOwner` role.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100 admin-surface-card">
+            <div class="card-body">
+                <div class="admin-stat-card__label">Pending Restaurant Records</div>
+                <div class="admin-stat-card__value">@Model.PendingRestaurantRecords</div>
+                <div class="text-muted small mt-2">Restaurant rows waiting for approval.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" asp-area="Admin" asp-controller="Accounts" asp-action="Index">Go to Accounts</a>
+    </div>
+</div>

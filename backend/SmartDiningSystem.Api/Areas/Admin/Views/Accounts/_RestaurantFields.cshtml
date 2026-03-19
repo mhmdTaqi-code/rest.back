@@ -1,0 +1,41 @@
+@model SmartDiningSystem.Application.Areas.Admin.Models.AdminAccountFormViewModel
+
+<div class="col-12">
+    <div id="restaurant-fields" class="card border-0 bg-light-subtle @(Model.RequiresRestaurantFields ? string.Empty : "d-none")">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
+                <div>
+                    <h2 class="h5 mb-1">Restaurant Details</h2>
+                    <p class="text-muted mb-0">Required when the account role is `RestaurantOwner`.</p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="RestaurantName"></label>
+                    <input class="form-control" asp-for="RestaurantName" />
+                    <span class="text-danger small" asp-validation-for="RestaurantName"></span>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold" asp-for="RestaurantPhoneNumber"></label>
+                    <input class="form-control" asp-for="RestaurantPhoneNumber" readonly />
+                    <span class="text-danger small" asp-validation-for="RestaurantPhoneNumber"></span>
+                    <div class="form-text">This value stays synchronized with the account phone number.</div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold" asp-for="RestaurantAddress"></label>
+                    <input class="form-control" asp-for="RestaurantAddress" />
+                    <span class="text-danger small" asp-validation-for="RestaurantAddress"></span>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-semibold" asp-for="RestaurantDescription"></label>
+                    <textarea class="form-control" asp-for="RestaurantDescription" rows="4"></textarea>
+                    <span class="text-danger small" asp-validation-for="RestaurantDescription"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

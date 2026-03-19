@@ -1,0 +1,41 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SmartDiningSystem.Domain.Entities;
+
+namespace SmartDiningSystem.Infrastructure.Data.Configurations;
+
+public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
+{
+    public void Configure(EntityTypeBuilder<MenuItem> builder)
+    {
+        builder.ToTable("MenuItems", tableBuilder =>
+        {
+            tableBuilder.HasCheckConstraint(
+                "CK_MenuItems_Price_Positive",
+                "\"Price\" > 0");
+        });
+
+        builder.HasKey(menuItem => menuItem.Id);
+
+        builder.Property(menuItem => menuItem.Name)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(menuItem => menuItem.Description)
+            .HasMaxLength(1000);
+
+        builder.Property(menuItem => menuItem.Price)
+            .IsRequired()
+            .HasPrecision(18, 2);
+
+        builder.Property(menuItem => menuItem.IsAvailable)
+            .IsRequired();
+
+        builder.Property(menuItem => menuItem.CreatedAtUtc)
+            .IsRequired()
+            .HasConversion<UtcDateTimeConverter>();
+
+        builder.HasIndex(menuItem => menuItem.RestaurantId);
+
+    }
+}
