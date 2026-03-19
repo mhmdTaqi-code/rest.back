@@ -1,6 +1,19 @@
+# Build
 **/bin/
 **/obj/
 .buildtemp/
-appsettings.Development.json
+
+# Logs
+*.log
+
+# Environment / local config
+**/appsettings.Development.json
 .env
 .env.*
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Keep only what we want cleanly tracked
