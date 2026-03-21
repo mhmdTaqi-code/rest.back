@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\ALI PC\\Desktop\\New folder (4)\\SmartDiningSystem\\backend\\SmartDiningSystem.Api\\wwwroot\\css\\admin.css",
+      "PackagePath": "staticwebassets\\css\\admin.css"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.SmartDiningSystem.Api.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.SmartDiningSystem.Api.props",
+      "PackagePath": "build\\SmartDiningSystem.Api.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.SmartDiningSystem.Api.props",
+      "PackagePath": "buildMultiTargeting\\SmartDiningSystem.Api.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.SmartDiningSystem.Api.props",
+      "PackagePath": "buildTransitive\\SmartDiningSystem.Api.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

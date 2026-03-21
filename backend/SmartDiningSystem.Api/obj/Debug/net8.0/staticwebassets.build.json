@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "jDTMt4N9UPuUM5HuP9krH+L6/7MdyzyFuNiEyvWsxxU=",
+  "Source": "SmartDiningSystem.Api",
+  "BasePath": "_content/SmartDiningSystem.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "SmartDiningSystem.Api\\wwwroot",
+      "Source": "SmartDiningSystem.Api",
+      "ContentRoot": "C:\\Users\\ALI PC\\Desktop\\New folder (4)\\SmartDiningSystem\\backend\\SmartDiningSystem.Api\\wwwroot\\",
+      "BasePath": "_content/SmartDiningSystem.Api",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\ALI PC\\Desktop\\New folder (4)\\SmartDiningSystem\\backend\\SmartDiningSystem.Api\\wwwroot\\css\\admin.css",
+      "SourceId": "SmartDiningSystem.Api",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\ALI PC\\Desktop\\New folder (4)\\SmartDiningSystem\\backend\\SmartDiningSystem.Api\\wwwroot\\",
+      "BasePath": "_content/SmartDiningSystem.Api",
+      "RelativePath": "css/admin.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\css\\admin.css"
+    }
+  ]
+}

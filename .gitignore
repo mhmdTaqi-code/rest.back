@@ -1,19 +1,44 @@
-# Build
+# ======================
+# BUILD
+# ======================
 **/bin/
 **/obj/
 .buildtemp/
 
-# Logs
+# ======================
+# LOGS
+# ======================
 *.log
 
-# Environment / local config
+# ======================
+# ENV / CONFIG
+# ======================
 **/appsettings.Development.json
 .env
 .env.*
 
+# ======================
 # IDE
+# ======================
 .vs/
 .vscode/
 .idea/
 
-# Keep only what we want cleanly tracked
+# ======================
+# SPEC KIT (مهم 🔥)
+# ======================
+.specify/
+specs/
+.cursor/
+
+# ======================
+# ROOT FILES ما نريدها
+# ======================
+tests/
+*.md
+
+# ======================
+# OPTIONAL (إذا تريد فقط backend)
+# ======================
+!backend/
+!backend/**
