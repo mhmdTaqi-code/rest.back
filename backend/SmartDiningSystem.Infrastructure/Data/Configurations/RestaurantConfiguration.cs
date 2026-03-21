@@ -61,6 +61,11 @@ public class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
         builder.HasIndex(restaurant => restaurant.OwnerId);
         builder.HasIndex(restaurant => restaurant.ApprovalStatus);
 
+        builder.HasMany(restaurant => restaurant.MenuCategories)
+            .WithOne(category => category.Restaurant)
+            .HasForeignKey(category => category.RestaurantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(restaurant => restaurant.MenuItems)
             .WithOne(menuItem => menuItem.Restaurant)
             .HasForeignKey(menuItem => menuItem.RestaurantId)
@@ -69,6 +74,11 @@ public class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
         builder.HasMany(restaurant => restaurant.Tables)
             .WithOne(table => table.Restaurant)
             .HasForeignKey(table => table.RestaurantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(restaurant => restaurant.TableCarts)
+            .WithOne(cart => cart.Restaurant)
+            .HasForeignKey(cart => cart.RestaurantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(restaurant => restaurant.Orders)

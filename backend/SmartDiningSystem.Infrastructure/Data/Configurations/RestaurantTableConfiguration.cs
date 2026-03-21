@@ -14,7 +14,7 @@ public class RestaurantTableConfiguration : IEntityTypeConfiguration<RestaurantT
 
         builder.Property(table => table.TableCode)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(128);
 
         builder.Property(table => table.DisplayName)
             .IsRequired()
@@ -25,7 +25,12 @@ public class RestaurantTableConfiguration : IEntityTypeConfiguration<RestaurantT
 
         builder.HasIndex(table => table.RestaurantId);
 
-        builder.HasIndex(table => new { table.RestaurantId, table.TableCode })
+        builder.HasIndex(table => table.TableCode)
             .IsUnique();
+
+        builder.HasMany(table => table.TableCarts)
+            .WithOne(cart => cart.RestaurantTable)
+            .HasForeignKey(cart => cart.RestaurantTableId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

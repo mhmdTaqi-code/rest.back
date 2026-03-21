@@ -2,7 +2,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SmartDiningSystem.Infrastructure.Data;
 
@@ -22,6 +21,41 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("RestaurantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestaurantId");
+
+                    b.HasIndex("RestaurantId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("MenuCategories", (string)null);
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -38,6 +72,9 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("MenuCategoryId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -51,6 +88,8 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MenuCategoryId");
 
                     b.HasIndex("RestaurantId");
 
@@ -127,7 +166,6 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                     b.ToTable("OrderItems", null, t =>
                         {
                             t.HasCheckConstraint("CK_OrderItems_Quantity_Positive", "\"Quantity\" > 0");
-
                             t.HasCheckConstraint("CK_OrderItems_UnitPrice_Positive", "\"UnitPrice\" > 0");
                         });
                 });
@@ -179,14 +217,13 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
 
                     b.HasIndex("PhoneNumber");
 
-                    b.HasIndex("UserAccountId");
-
                     b.HasIndex("PhoneNumber", "Code", "IsUsed");
+
+                    b.HasIndex("UserAccountId");
 
                     b.ToTable("OtpCodes", null, t =>
                         {
                             t.HasCheckConstraint("CK_OtpCodes_Association_Required", "(\"UserAccountId\" IS NOT NULL AND \"PendingRegistrationId\" IS NULL) OR (\"UserAccountId\" IS NULL AND \"PendingRegistrationId\" IS NOT NULL)");
-
                             t.HasCheckConstraint("CK_OtpCodes_Code_NotEmpty", "btrim(\"Code\") <> ''");
                         });
                 });
@@ -315,9 +352,7 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                     b.ToTable("Restaurants", null, t =>
                         {
                             t.HasCheckConstraint("CK_Restaurants_ApprovedAtUtc_OnlyWhenApproved", "\"ApprovalStatus\" = 'Approved' OR \"ApprovedAtUtc\" IS NULL");
-
                             t.HasCheckConstraint("CK_Restaurants_RejectedAtUtc_OnlyWhenRejected", "\"ApprovalStatus\" = 'Rejected' OR \"RejectedAtUtc\" IS NULL");
-
                             t.HasCheckConstraint("CK_Restaurants_RejectionReason_Required_WhenRejected", "\"ApprovalStatus\" <> 'Rejected' OR (\"RejectionReason\" IS NOT NULL AND btrim(\"RejectionReason\") <> '')");
                         });
                 });
@@ -341,17 +376,82 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
 
                     b.Property<string>("TableCode")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("RestaurantId");
 
-                    b.HasIndex("RestaurantId", "TableCode")
+                    b.HasIndex("TableCode")
                         .IsUnique();
 
                     b.ToTable("RestaurantTables", (string)null);
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableCart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RestaurantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RestaurantTableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestaurantId");
+
+                    b.HasIndex("RestaurantTableId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "RestaurantTableId")
+                        .IsUnique();
+
+                    b.ToTable("TableCarts", (string)null);
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableCartItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MenuItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TableCartId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MenuItemId");
+
+                    b.HasIndex("TableCartId");
+
+                    b.HasIndex("TableCartId", "MenuItemId")
+                        .IsUnique();
+
+                    b.ToTable("TableCartItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TableCartItems_Quantity_Positive", "\"Quantity\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.UserAccount", b =>
@@ -418,13 +518,31 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                     b.ToTable("UserAccounts", (string)null);
                 });
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
+                {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
+                        .WithMany("MenuCategories")
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Restaurant");
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuItem", b =>
                 {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.MenuCategory", "MenuCategory")
+                        .WithMany("MenuItems")
+                        .HasForeignKey("MenuCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
                         .WithMany("MenuItems")
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("MenuCategory");
 
                     b.Navigation("Restaurant");
                 });
@@ -514,9 +632,62 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                     b.Navigation("Restaurant");
                 });
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableCart", b =>
+                {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
+                        .WithMany("TableCarts")
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.RestaurantTable", "RestaurantTable")
+                        .WithMany("TableCarts")
+                        .HasForeignKey("RestaurantTableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.UserAccount", "User")
+                        .WithMany("TableCarts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Restaurant");
+
+                    b.Navigation("RestaurantTable");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableCartItem", b =>
+                {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.MenuItem", "MenuItem")
+                        .WithMany("TableCartItems")
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.TableCart", "TableCart")
+                        .WithMany("Items")
+                        .HasForeignKey("TableCartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MenuItem");
+
+                    b.Navigation("TableCart");
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
+                {
+                    b.Navigation("MenuItems");
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuItem", b =>
                 {
                     b.Navigation("OrderItems");
+
+                    b.Navigation("TableCartItems");
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.Order", b =>
@@ -531,9 +702,13 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.Restaurant", b =>
                 {
+                    b.Navigation("MenuCategories");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("Orders");
+
+                    b.Navigation("TableCarts");
 
                     b.Navigation("Tables");
                 });
@@ -541,6 +716,13 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.RestaurantTable", b =>
                 {
                     b.Navigation("Orders");
+
+                    b.Navigation("TableCarts");
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableCart", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.UserAccount", b =>
@@ -550,6 +732,8 @@ namespace SmartDiningSystem.Infrastructure.Data.Migrations
                     b.Navigation("Orders");
 
                     b.Navigation("OwnedRestaurants");
+
+                    b.Navigation("TableCarts");
                 });
 #pragma warning restore 612, 618
         }

@@ -12,8 +12,11 @@ public class AppDbContext : DbContext
 
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
     public DbSet<Restaurant> Restaurants => Set<Restaurant>();
+    public DbSet<MenuCategory> MenuCategories => Set<MenuCategory>();
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
     public DbSet<RestaurantTable> RestaurantTables => Set<RestaurantTable>();
+    public DbSet<TableCart> TableCarts => Set<TableCart>();
+    public DbSet<TableCartItem> TableCartItems => Set<TableCartItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();

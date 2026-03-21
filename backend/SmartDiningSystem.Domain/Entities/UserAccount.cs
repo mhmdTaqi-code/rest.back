@@ -17,6 +17,7 @@ public class UserAccount
     public DateTime UpdatedAtUtc { get; set; }
 
     public ICollection<Restaurant> OwnedRestaurants { get; set; } = new List<Restaurant>();
+    public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<OtpCode> LoginOtpCodes { get; set; } = new List<OtpCode>();
 }

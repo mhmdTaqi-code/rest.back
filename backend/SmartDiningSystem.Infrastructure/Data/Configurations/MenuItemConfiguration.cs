@@ -36,6 +36,16 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
             .HasConversion<UtcDateTimeConverter>();
 
         builder.HasIndex(menuItem => menuItem.RestaurantId);
+        builder.HasIndex(menuItem => menuItem.MenuCategoryId);
 
+        builder.HasOne(menuItem => menuItem.MenuCategory)
+            .WithMany(category => category.MenuItems)
+            .HasForeignKey(menuItem => menuItem.MenuCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(menuItem => menuItem.TableCartItems)
+            .WithOne(item => item.MenuItem)
+            .HasForeignKey(item => item.MenuItemId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

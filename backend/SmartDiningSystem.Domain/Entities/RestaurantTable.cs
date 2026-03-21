@@ -9,5 +9,6 @@ public class RestaurantTable
     public bool IsActive { get; set; }
 
     public Restaurant? Restaurant { get; set; }
+    public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
 }

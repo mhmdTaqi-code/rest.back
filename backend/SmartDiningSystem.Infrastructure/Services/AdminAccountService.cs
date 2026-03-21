@@ -307,6 +307,10 @@ public class AdminAccountService : IAdminAccountService
             .OrderBy(restaurant => restaurant.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
+        var userCarts = await _dbContext.TableCarts
+            .Where(cart => cart.UserId == account.Id)
+            .ToListAsync(cancellationToken);
+
         var hasUserOrderHistory = await _dbContext.Orders
             .AnyAsync(order => order.UserId == account.Id, cancellationToken);
 
@@ -358,6 +362,10 @@ public class AdminAccountService : IAdminAccountService
             {
                 var restaurantIds = ownedRestaurants.Select(restaurant => restaurant.Id).ToList();
 
+                var restaurantMenuCategories = await _dbContext.MenuCategories
+                    .Where(category => restaurantIds.Contains(category.RestaurantId))
+                    .ToListAsync(cancellationToken);
+
                 var restaurantMenuItems = await _dbContext.MenuItems
                     .Where(menuItem => restaurantIds.Contains(menuItem.RestaurantId))
                     .ToListAsync(cancellationToken);
@@ -366,9 +374,23 @@ public class AdminAccountService : IAdminAccountService
                     .Where(table => restaurantIds.Contains(table.RestaurantId))
                     .ToListAsync(cancellationToken);
 
+                var restaurantCarts = await _dbContext.TableCarts
+                    .Where(cart => restaurantIds.Contains(cart.RestaurantId))
+                    .ToListAsync(cancellationToken);
+
+                if (restaurantCarts.Count > 0)
+                {
+                    _dbContext.TableCarts.RemoveRange(restaurantCarts);
+                }
+
                 if (restaurantMenuItems.Count > 0)
                 {
                     _dbContext.MenuItems.RemoveRange(restaurantMenuItems);
+                }
+
+                if (restaurantMenuCategories.Count > 0)
+                {
+                    _dbContext.MenuCategories.RemoveRange(restaurantMenuCategories);
                 }
 
                 if (restaurantTables.Count > 0)
@@ -377,6 +399,11 @@ public class AdminAccountService : IAdminAccountService
                 }
 
                 _dbContext.Restaurants.RemoveRange(ownedRestaurants);
+            }
+
+            if (userCarts.Count > 0)
+            {
+                _dbContext.TableCarts.RemoveRange(userCarts);
             }
 
             var otpCodes = await _dbContext.OtpCodes

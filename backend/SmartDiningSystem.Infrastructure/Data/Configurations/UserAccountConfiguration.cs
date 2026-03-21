@@ -66,6 +66,11 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
             .HasForeignKey(restaurant => restaurant.OwnerId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(user => user.TableCarts)
+            .WithOne(cart => cart.User)
+            .HasForeignKey(cart => cart.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasMany(user => user.Orders)
             .WithOne(order => order.User)
             .HasForeignKey(order => order.UserId)

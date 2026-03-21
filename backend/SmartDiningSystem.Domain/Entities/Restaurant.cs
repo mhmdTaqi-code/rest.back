@@ -17,7 +17,9 @@ public class Restaurant
     public DateTime? RejectedAtUtc { get; set; }
 
     public UserAccount? Owner { get; set; }
+    public ICollection<MenuCategory> MenuCategories { get; set; } = new List<MenuCategory>();
     public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
     public ICollection<RestaurantTable> Tables { get; set; } = new List<RestaurantTable>();
+    public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
 }
