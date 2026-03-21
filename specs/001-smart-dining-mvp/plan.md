@@ -1,44 +1,43 @@
-# Implementation Plan: QR Table Menu Access With Authenticated Ordering Foundations
+# Implementation Plan: Restaurant Menu Management With Images And IQD Pricing
 
 **Branch**: `001-smart-dining-mvp` | **Date**: 2026-03-21 | **Spec**: `/specs/001-smart-dining-mvp/spec.md`  
 **Input**: Feature specification from `/specs/001-smart-dining-mvp/spec.md`
 
 ## Summary
 
-Implement backend-only foundations for QR table menu access and authenticated ordering inside the
-existing Smart Dining System without redesigning the project.
+Implement backend-only restaurant menu management inside the existing Smart Dining System so an
+approved `RestaurantOwner` can manage menu categories and menu items for their own restaurant.
 
 The planned implementation adds:
 
-- restaurant tables with unique public QR/table tokens
-- restaurant-scoped menu categories and menu items
-- public table token resolution and public menu-browsing endpoints
-- authenticated cart or order-draft handling per user and table
-- authenticated order submission linked to user, restaurant, and restaurant table
-- order and order-item persistence with future-ready status values
+- restaurant-scoped menu categories
+- restaurant-scoped menu items
+- item image URLs
+- decimal IQD pricing
+- approved-owner-only menu management
+- seed data for 3 restaurants with categories and items
 
 The implementation explicitly excludes:
 
-- frontend implementation
-- payment processing
-- kitchen dashboard behavior
-- guest ordering without authentication
-- redesign of OTP, JWT, role, restaurant approval, or current account flows
+- frontend work
+- architecture redesign
+- payment work
+- changes to OTP, JWT, login, or restaurant approval behavior
 
-The design extends the current ASP.NET Core Web API, EF Core, and PostgreSQL architecture using
-thin controllers, service-owned business logic, DTOs, validation, and EF Core migrations.
+The design extends the current ASP.NET Core Web API, EF Core, and PostgreSQL structure using thin
+controllers, service-owned business logic, DTOs, validation, and EF Core migrations.
 
 ## Technical Context
 
 **Language/Version**: C# on .NET 8  
 **Primary Dependencies**: ASP.NET Core Web API, EF Core, Npgsql/PostgreSQL, JWT authentication, existing Iraq OTP integration  
 **Storage**: PostgreSQL in Docker on port `5433`  
-**Testing**: Solution build, targeted API/service verification, EF Core migration verification, and regression checks for current auth and approval flows  
+**Testing**: Solution build, targeted service and API verification, migration verification, and regression checks for current auth and approval flows  
 **Target Platform**: Existing ASP.NET Core backend services  
 **Project Type**: Existing layered backend solution using `Api`, `Application`, `Domain`, and `Infrastructure`  
-**Performance Goals**: Public menu reads and authenticated cart operations should remain lightweight and responsive for normal restaurant traffic  
-**Constraints**: Preserve existing architecture; backend only; no payment; no kitchen dashboard yet; do not break OTP, JWT, restaurant approval, or current account behavior; controllers must stay thin; logic must stay in services; use DTOs and validation  
-**Scale/Scope**: Add menu and ordering foundations for restaurant tables within the current backend, ready for later kitchen and frontend phases
+**Performance Goals**: Menu-management operations should remain lightweight and responsive for normal owner usage  
+**Constraints**: Keep current architecture; no redesign; backend only; no frontend; no breaking existing logic; controllers must stay thin; logic must stay in services; use DTOs and validation  
+**Scale/Scope**: Add menu-category and menu-item management for restaurant owners within the current backend and database
 
 ## Constitution Check
 
@@ -49,8 +48,8 @@ thin controllers, service-owned business logic, DTOs, validation, and EF Core mi
 - Pass: Business logic stays in services.
 - Pass: DTOs and validation remain explicit boundaries.
 - Pass: Database changes are planned through EF Core migrations only.
-- Pass: OTP, JWT, role behavior, restaurant approval, and current account flows remain preserved.
-- Pass: Scope is backend only and excludes payment and kitchen dashboard implementation.
+- Pass: OTP, JWT, login, and restaurant approval flows remain preserved.
+- Pass: Scope is backend only and excludes frontend and unrelated redesign work.
 
 ## Project Structure
 
@@ -69,57 +68,48 @@ specs/001-smart-dining-mvp/
 backend/
 |-- SmartDiningSystem.Api/
 |   |-- Controllers/
-|   |-- DTOs/
 |   `-- Extensions/
 |-- SmartDiningSystem.Application/
 |   |-- DTOs/
 |   |-- Services/
-|   `-- Interfaces/
+|   |-- Interfaces/
+|   `-- Validation/
 |-- SmartDiningSystem.Domain/
 |   |-- Entities/
 |   `-- Enums/
 `-- SmartDiningSystem.Infrastructure/
     |-- Data/
     |-- Configurations/
+    |-- Seed/
     `-- Services/
 ```
 
 **Structure Decision**: Extend the existing layered solution. API endpoints stay in `Api`, DTOs and
-service contracts stay in `Application`, entities and enums stay in `Domain`, and EF Core
-configurations plus service implementations stay in `Infrastructure`.
+service contracts stay in `Application`, entities remain in `Domain`, and EF Core plus business
+implementations stay in `Infrastructure`.
 
 ## Data Model Design
 
 ### Planned Entities
 
-#### RestaurantTable
-
-Purpose:
-Represents a physical table inside a restaurant and the public context reached from a QR code.
-
-Planned responsibilities:
-
-- link a table to exactly one restaurant
-- store a human-readable identifier such as table number or label
-- store a unique public QR/table token
-- support active/inactive availability for public access
-
-Planned relationships:
-
-- one `Restaurant` to many `RestaurantTable`
-- one `RestaurantTable` to many future `Order` records
-- one `RestaurantTable` to zero or more active cart or draft records
-
 #### MenuCategory
 
 Purpose:
-Groups menu items for one restaurant in a structure suitable for public browsing.
+Represents a category belonging to exactly one restaurant.
+
+Planned fields:
+
+- `Id`
+- `RestaurantId`
+- `Name`
+- `Description`
+- `DisplayOrder`
 
 Planned responsibilities:
 
-- belong to exactly one restaurant
-- hold category-level display information
-- support menu ordering and filtering in future API responses
+- group menu items under one restaurant
+- support owner-managed ordering and menu structure
+- support optional display ordering for later menu presentation
 
 Planned relationships:
 
@@ -129,319 +119,190 @@ Planned relationships:
 #### MenuItem
 
 Purpose:
-Represents a restaurant menu entry that can appear in the public menu and in authenticated cart and
-order flows.
+Represents a restaurant menu item under one category and one restaurant.
+
+Planned fields:
+
+- `Id`
+- `RestaurantId`
+- `CategoryId`
+- `Name`
+- `Description`
+- `Price`
+- `ImageUrl`
+- `IsAvailable`
+- `DisplayOrder`
 
 Planned responsibilities:
 
-- belong to exactly one restaurant
-- belong to one menu category
-- expose name, description, price, and availability state
-- support active/inactive or available/unavailable validation for ordering
+- store the core menu item details used by current and future menu browsing
+- store price as decimal IQD value
+- store a required image URL
+- support owner-controlled availability
 
 Planned relationships:
 
 - one `Restaurant` to many `MenuItem`
 - one `MenuCategory` to many `MenuItem`
-- one `MenuItem` to many cart or draft items
-- one `MenuItem` to many `OrderItem` records
-
-#### Cart Or Draft-Order Approach
-
-Recommended approach:
-Use a persisted cart or order-draft model scoped by authenticated user and restaurant table.
-
-Planning direction:
-
-- maintain exactly one active cart or draft per authenticated user per table context
-- include restaurant linkage either directly or derivable through the table
-- store line items separately for quantity-based updates
-- convert the active cart or draft into a submitted order without losing relational integrity
-
-Why this approach:
-
-- keeps add/update/remove behavior straightforward
-- preserves table-specific state before submission
-- avoids mixing unsubmitted state directly into the final `Order` lifecycle
-- stays extensible for later timeout, merge, and recovery behavior
-
-#### Order
-
-Purpose:
-Represents a submitted order ready for future operational processing.
-
-Planned responsibilities:
-
-- always belong to an authenticated user
-- always belong to a restaurant
-- always belong to a restaurant table
-- start in `Received` status
-- remain ready for future kitchen status progression
-
-Planned relationships:
-
-- one `UserAccount` to many `Order`
-- one `Restaurant` to many `Order`
-- one `RestaurantTable` to many `Order`
-- one `Order` to many `OrderItem`
-
-#### OrderItem
-
-Purpose:
-Represents a submitted line item captured from the cart at order time.
-
-Planned responsibilities:
-
-- belong to exactly one order
-- reference the selected menu item
-- capture quantity and price snapshot data needed for future processing
-- preserve the submitted state even if menu data changes later
-
-Planned relationships:
-
-- one `Order` to many `OrderItem`
-- many `OrderItem` records may reference one `MenuItem`
+- one `MenuItem` belongs to exactly one `Restaurant`
+- one `MenuItem` belongs to exactly one `MenuCategory`
 
 ### Relationship Rules
 
-Orders must relate to:
+- one restaurant owns many categories
+- one restaurant owns many menu items
+- one category owns many items
+- a menu item's category must belong to the same restaurant as the item
+- an owner may manage only the restaurant linked to their own account context
 
-- `UserAccount`: required; guest orders are not allowed in this phase
-- `Restaurant`: required; must match the restaurant derived from the table
-- `RestaurantTable`: required; must match the scanned table context
-- `MenuItem`: required through order items; all items must belong to the same restaurant as the table
+## Field And Storage Design
 
-Consistency rules:
+### MenuCategory Field Direction
 
-- a `RestaurantTable` cannot belong to multiple restaurants
-- a `MenuCategory` cannot mix menu items from different restaurants
-- a cart or draft cannot contain items from multiple restaurants
-- an order cannot contain items from multiple restaurants
-- the restaurant on the order must match the restaurant on the table and all included menu items
+- `Name`: required, trimmed, safe length-limited text
+- `Description`: optional, safe length-limited text
+- `DisplayOrder`: optional integer used for ordered category display
+- `RestaurantId`: required foreign key
 
-## Access Design
+### MenuItem Field Direction
 
-### Public Endpoints
+- `Name`: required, trimmed, safe length-limited text
+- `Description`: optional, safe length-limited text
+- `Price`: required decimal value representing IQD
+- `ImageUrl`: required string
+- `IsAvailable`: required boolean for operational availability
+- `DisplayOrder`: optional integer used for ordered item display
+- `RestaurantId`: required foreign key
+- `CategoryId`: required foreign key
 
-Planned public capabilities:
+### Price Rules
 
-- resolve table by token
-- get public menu for a restaurant table
+- price must be stored as decimal
+- price represents IQD
+- price must be greater than or equal to `0`
+- currency text must not be stored in the database field
+- EF Core configuration must define explicit decimal precision
 
-Endpoint direction:
+## Authorization Design
 
-- `GET /api/public/tables/{token}`
-  - resolves a public table token
-  - returns safe public context such as restaurant summary, table summary, and table validity state
-- `GET /api/public/tables/{token}/menu`
-  - returns menu categories and menu items for the resolved restaurant table context
+### Allowed Actor
 
-Public endpoint rules:
+- approved `RestaurantOwner` only
 
-- no authentication required for browse-only access
-- no cart mutation or order submission capability
-- response shape must remain browse-oriented only
-- invalid or inactive token must return a clear failure response
+### Authorization Rules
 
-### Authenticated Endpoints
+- menu management endpoints require authenticated owner access
+- the owner must have a linked restaurant
+- the linked restaurant must be approved
+- the owner may only manage categories and items for their own restaurant
+- guests cannot modify menu data
+- authenticated `User`, `Admin`, and `MainAdmin` flows are not changed by this feature unless
+  current role policy explicitly grants access, which is not planned here
 
-Planned authenticated capabilities:
+### Ownership Enforcement Direction
 
-- add to cart
-- update/remove cart items
-- view current cart
-- submit order
-
-Endpoint direction:
-
-- `GET /api/table-ordering/tables/{token}/cart`
-  - returns the authenticated user's active cart for the resolved table
-- `POST /api/table-ordering/tables/{token}/cart/items`
-  - adds a menu item to the authenticated user's cart for that table
-- `PUT /api/table-ordering/tables/{token}/cart/items/{itemId}`
-  - updates quantity or item state in the cart
-- `DELETE /api/table-ordering/tables/{token}/cart/items/{itemId}`
-  - removes an item from the authenticated user's cart
-- `POST /api/table-ordering/tables/{token}/orders`
-  - submits the authenticated user's current cart as an order
-
-Authenticated endpoint rules:
-
-- require JWT-authenticated user context
-- derive `UserId` from the authenticated principal, not from client input
-- resolve table by token before performing cart or order actions
-- enforce restaurant consistency between table and menu items
-- return validation errors for unavailable items or invalid quantities
-
-## Authentication Rules
-
-- Guests can access public browse-only endpoints.
-- Guests cannot create, view, modify, or submit cart or order data.
-- Authenticated ordering endpoints must require a valid authenticated user.
-- Submitted orders must always include a valid server-derived `UserId`.
-- Client requests must not be trusted to supply or override `UserId`.
-- Existing JWT behavior must be reused rather than replaced.
-- Existing OTP behavior remains unchanged because this feature does not alter public authentication flows.
-
-## Order Lifecycle Design
-
-### Initial Status Model
-
-Planned order status enum:
-
-- `Received`
-- `Preparing`
-- `Ready`
-- `Served`
-
-### Lifecycle Rules
-
-- every newly submitted order starts as `Received`
-- `Preparing`, `Ready`, and `Served` are included now for future kitchen workflow compatibility
-- no kitchen dashboard or kitchen transition APIs are included in this phase
-- no payment status is introduced in this phase
-
-### Future-Readiness Notes
-
-- state naming should be stable enough to support later staff-facing workflows
-- order records should store enough relational context for later kitchen filtering by restaurant and table
-- order history should not depend on the cart record remaining active after submission
+- derive owner identity from JWT user context
+- resolve the owner's linked restaurant server-side
+- reject client attempts to act on another restaurant's menu data
 
 ## Service-Layer Design
 
-### Table Resolution Service
+### CategoryService
 
 Purpose:
-Centralize table-token lookup and validation for both public and authenticated flows.
+Own all menu-category business logic.
 
 Planned responsibilities:
 
-- resolve a table from token
-- validate token existence
-- validate table activity state
-- validate restaurant availability state as required by current business rules
+- create categories
+- list categories for the owner's restaurant
+- update categories
+- delete categories if allowed by current business rules
+- validate owner approval and ownership
+- validate category input data
 
-### Public Menu Service
+### MenuItemService
 
 Purpose:
-Provide public browse-only menu data for a resolved table context.
+Own all menu-item business logic.
 
 Planned responsibilities:
 
-- load restaurant summary for the table
-- load menu categories and active menu items
-- shape public response DTOs
-- exclude any authenticated-only cart or order data
+- create menu items
+- list menu items for the owner's restaurant
+- update menu items
+- delete menu items if allowed by current business rules
+- toggle item availability
+- validate owner approval and ownership
+- validate item input data
+- validate category-to-restaurant consistency
 
-### Cart Service
+## Validation Plan
 
-Purpose:
-Own all add/view/update/remove behavior for authenticated user carts or drafts.
+### Category Validation
 
-Planned responsibilities:
+- category name is required
+- category name should be trimmed and safe length-limited
+- category must belong to the owner's restaurant context
 
-- create or load active cart for authenticated user and table
-- add items with quantity validation
-- update item quantities
-- remove items
-- validate menu item availability
-- validate restaurant and table consistency
-- return cart DTOs
+### Item Validation
 
-### Order Submission Service
+- item name is required
+- item image URL is required
+- item price must be greater than or equal to `0`
+- category must exist
+- category must belong to the same restaurant as the item
+- item restaurant must match the owner's restaurant
 
-Purpose:
-Turn a valid authenticated cart or draft into a persisted order.
+### Authorization Validation
 
-Planned responsibilities:
+- user must be authenticated
+- user must be a `RestaurantOwner`
+- owner must have an approved restaurant
+- owner must only manage their own restaurant
 
-- load authenticated user's active cart for the target table
-- validate cart is non-empty
-- revalidate menu item availability and restaurant consistency at submit time
-- create order and order items
-- assign initial `Received` status
-- clear, close, or mark the draft/cart as submitted according to the chosen persistence approach
-- use transaction handling for order creation and cart finalization
+### Safety Validation
 
-## Validation And Safety Plan
+- reject invalid restaurant/category combinations
+- reject invalid restaurant/item combinations
+- reject non-owner access
+- reject unapproved owner access
 
-### Validation Rules
-
-#### Invalid Table Tokens
-
-- reject unknown tokens with not-found style responses
-- do not leak internal identifiers when token resolution fails
-
-#### Inactive Tables
-
-- block public and authenticated ordering flows when the table is inactive
-- return clear validation or business-rule responses
-
-#### Unavailable Menu Items
-
-- block add-to-cart when the item is unavailable or inactive
-- revalidate availability again during order submission to prevent stale-cart ordering
-
-#### Invalid Quantities
-
-- reject zero, negative, or otherwise invalid quantities
-- define reasonable quantity validation at DTO and service levels
-
-#### Cross-Restaurant Consistency
-
-- reject cart or order actions when the item restaurant does not match the table restaurant
-- reject inconsistent data if a stale client tries to submit mixed-context requests
-
-#### Unauthorized Guest Ordering Attempts
-
-- reject guest requests to cart or order endpoints using the existing auth conventions
-- keep public endpoints browse-only and free of state mutation
-
-### Safety Measures
-
-- derive table context from token, not from client-submitted restaurant IDs
-- derive user identity from authenticated principal, not request body
-- use service-layer checks before persisting cart or order data
-- use transactional persistence for order submission
-- preserve referential integrity with explicit foreign keys and constraints
-
-## Database Migration Strategy
+## Database Plan
 
 ### Required Schema Changes
 
-Planned schema additions:
+Planned schema work:
 
-- add `RestaurantTables` table
-- add `MenuCategories` table
-- add `MenuItems` table
-- add cart or draft-order tables plus line-item table
-- add `Orders` table
-- add `OrderItems` table
-- add order status enum or mapped status field as appropriate to the existing project style
+- add `DbSet<MenuCategory>` if not already present
+- add or update `DbSet<MenuItem>` if needed for the final model
+- configure restaurant-to-category relationship
+- configure restaurant-to-item relationship
+- configure category-to-item relationship
+- configure decimal precision for item price
+- configure required `ImageUrl`
+- add indexes and constraints as needed for restaurant/category/item lookups
 
-Potential schema updates:
+### Migration Direction
 
-- add indexes for public table token lookup
-- add indexes for cart lookup by user and table
-- add indexes for order lookup by restaurant, table, and user
-- add uniqueness constraints where needed for token safety and table identity rules
+- create additive EF Core migrations only
+- avoid rewriting existing auth or approval tables
+- keep schema changes focused on menu management
 
-### Migration Order
+## Seed Data Plan
 
-Recommended migration sequence:
+Seed requirements:
 
-1. Add foundational enums and domain models if required by the project structure.
-2. Add `RestaurantTable` schema and token uniqueness/indexing.
-3. Add menu schema: `MenuCategory` then `MenuItem`.
-4. Add cart or draft schema and line items.
-5. Add `Order` and `OrderItem` schema plus order status mapping.
-6. Add or refine indexes and constraints for performance and consistency.
+- 3 restaurants
+- each restaurant has categories
+- each category has items
+- each item includes image URL and decimal IQD price
 
-### Migration Safety Notes
+Seed design direction:
 
-- migrations must extend the existing schema rather than rewrite existing tables
-- no existing auth, OTP, restaurant approval, or account tables should be structurally rewritten for this feature
-- data seeding, if later needed, should be additive and optional
+- seed data should align with current database initialization style
+- seed records should respect current restaurant ownership and approval expectations
+- seeded values should be valid for testing and API verification
 
 ## Compatibility Strategy
 
@@ -449,34 +310,33 @@ This feature extends the current system without rewriting it.
 
 Compatibility direction:
 
-- reuse the existing layered architecture and project boundaries
-- keep current authentication and authorization mechanisms intact
-- add new entities and services rather than refactoring unrelated subsystems
-- preserve existing restaurant approval behavior while attaching new table and menu data to restaurants
-- keep current account and role flows unchanged
-- avoid introducing frontend dependencies in this phase
+- no changes to auth system
+- no changes to approval system
+- no changes to OTP flow
+- no changes to JWT token issuance behavior
+- no changes to current login flow
+- menu management is added as a focused extension to restaurant-owner capabilities
 
 Expected integration behavior:
 
 - existing auth endpoints remain unchanged
-- existing OTP flows remain unchanged
-- existing restaurant approval flows remain unchanged
-- new endpoints live alongside current APIs without replacing them
-- future frontend and kitchen features can build on these backend contracts later
+- existing restaurant approval process remains authoritative
+- existing public restaurant visibility rules remain intact
+- new menu-management logic lives beside current restaurant logic rather than replacing it
 
 ## Implementation Direction For Next Tasks Phase
 
 Recommended execution order:
 
-1. Add domain enums and entities for restaurant tables, menus, cart or draft, orders, and order items.
-2. Configure EF Core mappings, relationships, constraints, and indexes.
-3. Add migration(s) in the planned additive order.
-4. Add DTOs and validation models for public menu, cart, and order requests and responses.
-5. Implement table resolution and public menu services.
-6. Implement authenticated cart service.
-7. Implement order submission service with transaction handling.
-8. Add thin API controllers for public table menu and authenticated table ordering.
-9. Verify compatibility with JWT, OTP, restaurant approval, and existing account behavior.
+1. Finalize `MenuCategory` and `MenuItem` domain shape.
+2. Add or update EF Core mappings, relationships, and decimal precision rules.
+3. Add additive migration(s).
+4. Add DTOs and validation models for category and item management.
+5. Implement `CategoryService`.
+6. Implement `MenuItemService`.
+7. Add thin owner-only API endpoints for category and item management.
+8. Add seed data for 3 restaurants with categories and items.
+9. Verify compatibility with auth and approval flows.
 
 ## Complexity Tracking
 
@@ -485,7 +345,6 @@ No constitution violations are expected in this plan.
 Clarifications:
 
 - This plan is backend only.
-- No payment implementation is included.
-- No kitchen dashboard implementation is included.
-- Guests can browse only.
-- Only authenticated users can create or modify cart and order data.
+- No frontend work is included.
+- No redesign is included.
+- Existing auth and approval behavior remain unchanged.
