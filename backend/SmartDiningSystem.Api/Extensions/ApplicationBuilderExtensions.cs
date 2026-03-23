@@ -13,17 +13,25 @@ public static class ApplicationBuilderExtensions
 
         await using var scope = app.Services.CreateAsyncScope();
         var services = scope.ServiceProvider;
-        var logger = services.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("Startup.DatabaseSetup");
+        var logger = services.GetRequiredService<ILogger<ApplicationBuilderExtensions>>();
 
         var dbContext = services.GetRequiredService<AppDbContext>();
-        logger.LogInformation("Starting EF Core database migration.");
-        await dbContext.Database.MigrateAsync();
-        logger.LogInformation("EF Core database migration completed successfully.");
-
         var adminSeedService = services.GetRequiredService<AdminSeedService>();
-        logger.LogInformation("Starting application seed execution.");
+
+        try
+        {
+            logger.LogInformation("Starting database migration");
+            await dbContext.Database.MigrateAsync();
+            logger.LogInformation("Migration completed");
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Database migration failed. Seed will not run.");
+            throw;
+        }
+
+        logger.LogInformation("Starting seed");
         await adminSeedService.SeedAsync();
-        logger.LogInformation("Application seed execution completed successfully.");
+        logger.LogInformation("Seed completed");
     }
 }
