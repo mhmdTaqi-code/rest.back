@@ -9,6 +9,25 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Support Render DATABASE_URL if present
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrWhiteSpace(databaseUrl))
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':', 2);
+
+    var host = uri.Host;
+    var port = uri.Port;
+    var database = uri.AbsolutePath.Trim('/');
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
+
+    var connectionString =
+        $"Host={host};Port={port};Database={database};Username={username};Password={password};SslMode=Require;Trust Server Certificate=true;Include Error Detail=true;Timeout=15;Command Timeout=30";
+
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+}
+
 builder.Services.AddControllersWithViews();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
