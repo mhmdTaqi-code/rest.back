@@ -13,7 +13,8 @@ public static class ApplicationBuilderExtensions
 
         await using var scope = app.Services.CreateAsyncScope();
         var services = scope.ServiceProvider;
-        var logger = services.GetRequiredService<ILogger<ApplicationBuilderExtensions>>();
+        var logger = services.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Startup.DatabaseSetup");
 
         var dbContext = services.GetRequiredService<AppDbContext>();
         var adminSeedService = services.GetRequiredService<AdminSeedService>();
