@@ -17,7 +17,7 @@ if (!string.IsNullOrWhiteSpace(databaseUrl))
     var userInfo = uri.UserInfo.Split(':', 2);
 
     var host = uri.Host;
-    var port = uri.Port;
+    var port = uri.Port > 0 ? uri.Port : 5432;
     var database = uri.AbsolutePath.Trim('/');
     var username = Uri.UnescapeDataString(userInfo[0]);
     var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
@@ -29,6 +29,7 @@ if (!string.IsNullOrWhiteSpace(databaseUrl))
 }
 
 builder.Services.AddControllersWithViews();
+
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -47,7 +48,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
         });
     };
 });
+
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     var jwtSecurityScheme = new OpenApiSecurityScheme
@@ -71,6 +74,7 @@ builder.Services.AddSwaggerGen(options =>
         [jwtSecurityScheme] = Array.Empty<string>()
     });
 });
+
 builder.Services.AddAuthorization();
 builder.Services.AddApplicationServices(builder.Configuration);
 
@@ -87,10 +91,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.MapControllerRoute(
     name: "admin_login",
     pattern: "mainadmin/login",
     defaults: new { area = "Admin", controller = "Auth", action = "Login" });
+
 app.MapControllerRoute(
     name: "admin_area",
     pattern: "mainadmin/{controller=Dashboard}/{action=Index}/{id?}",
