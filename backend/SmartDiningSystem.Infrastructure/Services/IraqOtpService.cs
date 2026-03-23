@@ -22,6 +22,7 @@ public class IraqOtpService : IOtpService
 {
     private const int OtpLength = 6;
     private static readonly TimeSpan OtpLifetime = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan ResendCooldown = TimeSpan.FromSeconds(60);
 
     private readonly AppDbContext _dbContext;
     private readonly HttpClient _httpClient;
@@ -51,6 +52,22 @@ public class IraqOtpService : IOtpService
             OtpPurpose.Registration,
             pendingRegistrationId: pendingRegistration.Id,
             userAccountId: null,
+            enforceCooldown: false,
+            cancellationToken);
+    }
+
+    public async Task<OtpDispatchResponseDto> ResendRegistrationOtpAsync(
+        PendingRegistration pendingRegistration,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pendingRegistration);
+
+        return await CreateAndSendOtpAsync(
+            pendingRegistration.PhoneNumber,
+            OtpPurpose.Registration,
+            pendingRegistrationId: pendingRegistration.Id,
+            userAccountId: null,
+            enforceCooldown: true,
             cancellationToken);
     }
 
@@ -70,7 +87,10 @@ public class IraqOtpService : IOtpService
         var latestOtpCode = await _dbContext.OtpCodes
             .Include(entity => entity.UserAccount)
             .Include(entity => entity.PendingRegistration)
-            .Where(entity => entity.PhoneNumber == normalizedPhoneNumber)
+            .Where(entity =>
+                entity.PhoneNumber == normalizedPhoneNumber &&
+                !entity.IsUsed &&
+                entity.ExpiresAtUtc >= nowUtc)
             .OrderByDescending(entity => entity.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -93,29 +113,10 @@ public class IraqOtpService : IOtpService
             throw new AuthServiceException("Invalid OTP code.", StatusCodes.Status400BadRequest);
         }
 
-        if (latestOtpCode.IsUsed)
-        {
-            _logger.LogInformation(
-                "OTP verification failed for phone number {PhoneNumber}: latest OTP was already used.",
-                normalizedPhoneNumber);
-
-            throw new AuthServiceException("OTP code has already been used.", StatusCodes.Status400BadRequest);
-        }
-
-        if (latestOtpCode.ExpiresAtUtc < nowUtc)
-        {
-            _logger.LogInformation(
-                "OTP verification failed for phone number {PhoneNumber}: latest OTP expired at {ExpiresAtUtc}.",
-                normalizedPhoneNumber,
-                latestOtpCode.ExpiresAtUtc);
-
-            throw new AuthServiceException("OTP code has expired.", StatusCodes.Status400BadRequest);
-        }
-
         if (!string.Equals(latestOtpCode.Code, normalizedCode, StringComparison.Ordinal))
         {
             _logger.LogInformation(
-                "OTP verification failed for phone number {PhoneNumber}: latest valid OTP exists but the submitted code did not match.",
+                "OTP verification failed for phone number {PhoneNumber}: latest active OTP exists but the submitted code did not match.",
                 normalizedPhoneNumber);
 
             throw new AuthServiceException("Invalid OTP code.", StatusCodes.Status400BadRequest);
@@ -135,21 +136,25 @@ public class IraqOtpService : IOtpService
         OtpPurpose purpose,
         Guid? pendingRegistrationId,
         Guid? userAccountId,
+        bool enforceCooldown,
         CancellationToken cancellationToken)
     {
         var normalizedPhoneNumber = NormalizePhoneNumber(phoneNumber);
         EnsureProviderConfigured();
 
-        var activeCodes = await _dbContext.OtpCodes
-            .Where(otpCode => otpCode.PhoneNumber == normalizedPhoneNumber && !otpCode.IsUsed)
-            .ToListAsync(cancellationToken);
-
-        foreach (var activeCode in activeCodes)
+        if (enforceCooldown)
         {
-            activeCode.IsUsed = true;
-            activeCode.UsedAtUtc = DateTime.UtcNow;
+            await EnsureResendAllowedAsync(normalizedPhoneNumber, purpose, pendingRegistrationId, userAccountId, cancellationToken);
         }
 
+        var activeCodes = await _dbContext.OtpCodes
+            .Where(otpCode =>
+                otpCode.PhoneNumber == normalizedPhoneNumber &&
+                otpCode.Purpose == purpose &&
+                !otpCode.IsUsed)
+            .ToListAsync(cancellationToken);
+
+        var nowUtc = DateTime.UtcNow;
         var otpCode = new OtpCode
         {
             Id = Guid.NewGuid(),
@@ -158,8 +163,8 @@ public class IraqOtpService : IOtpService
             PhoneNumber = normalizedPhoneNumber,
             Code = GenerateCode(),
             Purpose = purpose,
-            CreatedAtUtc = DateTime.UtcNow,
-            ExpiresAtUtc = DateTime.UtcNow.Add(OtpLifetime),
+            CreatedAtUtc = nowUtc,
+            ExpiresAtUtc = nowUtc.Add(OtpLifetime),
             IsUsed = false
         };
 
@@ -178,6 +183,15 @@ public class IraqOtpService : IOtpService
             throw;
         }
 
+        var invalidatedAtUtc = DateTime.UtcNow;
+        foreach (var activeCode in activeCodes)
+        {
+            activeCode.IsUsed = true;
+            activeCode.UsedAtUtc = invalidatedAtUtc;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
         _logger.LogInformation(
             "OTP sent successfully through OTPIQ for phone number {PhoneNumber} and purpose {Purpose}.",
             normalizedPhoneNumber,
@@ -189,6 +203,49 @@ public class IraqOtpService : IOtpService
             Purpose = purpose.ToString(),
             ExpiresAtUtc = otpCode.ExpiresAtUtc
         };
+    }
+
+    private async Task EnsureResendAllowedAsync(
+        string phoneNumber,
+        OtpPurpose purpose,
+        Guid? pendingRegistrationId,
+        Guid? userAccountId,
+        CancellationToken cancellationToken)
+    {
+        var latestOtp = await _dbContext.OtpCodes
+            .Where(otpCode =>
+                otpCode.PhoneNumber == phoneNumber &&
+                otpCode.Purpose == purpose &&
+                otpCode.PendingRegistrationId == pendingRegistrationId &&
+                otpCode.UserAccountId == userAccountId)
+            .OrderByDescending(otpCode => otpCode.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestOtp is null)
+        {
+            throw new AuthServiceException(
+                "OTP resend is not available for this phone number.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    ["phoneNumber"] = ["No eligible OTP record was found for resend."]
+                });
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        var nextAllowedAtUtc = latestOtp.CreatedAtUtc.Add(ResendCooldown);
+        if (nextAllowedAtUtc > nowUtc)
+        {
+            var retryAfterSeconds = Math.Max(1, (int)Math.Ceiling((nextAllowedAtUtc - nowUtc).TotalSeconds));
+            throw new AuthServiceException(
+                $"OTP resend is on cooldown. Try again in {retryAfterSeconds} seconds.",
+                StatusCodes.Status429TooManyRequests,
+                new Dictionary<string, string[]>
+                {
+                    ["phoneNumber"] = ["OTP resend was requested too recently."],
+                    ["retryAfterSeconds"] = [retryAfterSeconds.ToString()]
+                });
+        }
     }
 
     private async Task SendOtpThroughProviderAsync(

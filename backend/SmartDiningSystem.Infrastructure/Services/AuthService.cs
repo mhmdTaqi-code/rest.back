@@ -98,6 +98,31 @@ public class AuthService : IAuthService
         return await _otpService.CreateAndSendRegistrationOtpAsync(pendingRegistration, cancellationToken);
     }
 
+    public async Task<OtpDispatchResponseDto> ResendOtpAsync(
+        ResendOtpRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedPhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
+
+        var pendingRegistration = await _dbContext.PendingRegistrations
+            .SingleOrDefaultAsync(entity => entity.PhoneNumber == normalizedPhoneNumber, cancellationToken);
+
+        if (pendingRegistration is null)
+        {
+            throw new AuthServiceException(
+                "OTP resend is not available for this phone number.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    [nameof(request.PhoneNumber)] = ["No eligible pending verification flow was found for this phone number."]
+                });
+        }
+
+        EnsurePendingRegistrationEligibleForOtpResend(pendingRegistration);
+
+        return await _otpService.ResendRegistrationOtpAsync(pendingRegistration, cancellationToken);
+    }
+
     public async Task<AuthResponseDto> LoginAsync(
         LoginRequestDto request,
         CancellationToken cancellationToken = default)
@@ -397,5 +422,36 @@ public class AuthService : IAuthService
     private static string NormalizeUsername(string username)
     {
         return username.Trim().ToLowerInvariant();
+    }
+
+    private static void EnsurePendingRegistrationEligibleForOtpResend(PendingRegistration pendingRegistration)
+    {
+        if (string.IsNullOrWhiteSpace(pendingRegistration.FullName)
+            || string.IsNullOrWhiteSpace(pendingRegistration.Email)
+            || string.IsNullOrWhiteSpace(pendingRegistration.Username)
+            || string.IsNullOrWhiteSpace(pendingRegistration.PasswordHash))
+        {
+            throw new AuthServiceException(
+                "OTP resend is not available for this phone number.",
+                StatusCodes.Status400BadRequest,
+                new Dictionary<string, string[]>
+                {
+                    ["phoneNumber"] = ["The pending verification state is incomplete for OTP resend."]
+                });
+        }
+
+        if (pendingRegistration.Role == UserRole.RestaurantOwner
+            && (string.IsNullOrWhiteSpace(pendingRegistration.RestaurantName)
+                || string.IsNullOrWhiteSpace(pendingRegistration.RestaurantAddress)
+                || string.IsNullOrWhiteSpace(pendingRegistration.RestaurantPhoneNumber)))
+        {
+            throw new AuthServiceException(
+                "OTP resend is not available for this phone number.",
+                StatusCodes.Status400BadRequest,
+                new Dictionary<string, string[]>
+                {
+                    ["phoneNumber"] = ["The pending restaurant owner verification state is incomplete for OTP resend."]
+                });
+        }
     }
 }

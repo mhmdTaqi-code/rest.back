@@ -31,9 +31,11 @@ public class PublicTableMenuService : IPublicTableMenuService
             {
                 Id = category.Id,
                 Name = category.Name,
+                Description = category.Description,
                 DisplayOrder = category.DisplayOrder,
                 Items = category.MenuItems
-                    .OrderBy(item => item.Name)
+                    .OrderBy(item => item.DisplayOrder)
+                    .ThenBy(item => item.Name)
                     .Select(item => new PublicTableMenuItemDto
                     {
                         Id = item.Id,
@@ -41,6 +43,8 @@ public class PublicTableMenuService : IPublicTableMenuService
                         Name = item.Name,
                         Description = item.Description,
                         Price = item.Price,
+                        ImageUrl = item.ImageUrl,
+                        DisplayOrder = item.DisplayOrder,
                         IsAvailable = item.IsAvailable
                     })
                     .ToList()

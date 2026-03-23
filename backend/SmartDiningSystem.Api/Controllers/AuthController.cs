@@ -102,6 +102,36 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("resend-otp")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<OtpDispatchResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status502BadGateway)]
+    public async Task<ActionResult<ApiSuccessResponseDto<OtpDispatchResponseDto>>> ResendOtp(
+        [FromBody] ResendOtpRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _authService.ResendOtpAsync(request, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<OtpDispatchResponseDto>
+            {
+                Message = "OTP resent successfully.",
+                Data = result
+            });
+        }
+        catch (AuthServiceException exception)
+        {
+            return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+            {
+                Message = exception.Message,
+                Errors = exception.Errors,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
     [HttpPost("verify-otp")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<AuthResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]

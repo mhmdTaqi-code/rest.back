@@ -31,16 +31,21 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     private static string ResolveConfigurationBasePath()
     {
         var currentDirectory = Directory.GetCurrentDirectory();
-        var apiDirectory = Path.GetFullPath(Path.Combine(currentDirectory, "..", "SmartDiningSystem.Api"));
-
-        if (File.Exists(Path.Combine(apiDirectory, "appsettings.json")))
+        var candidateDirectories = new[]
         {
-            return apiDirectory;
-        }
+            currentDirectory,
+            Path.GetFullPath(Path.Combine(currentDirectory, "..", "SmartDiningSystem.Api")),
+            Path.GetFullPath(Path.Combine(currentDirectory, "backend", "SmartDiningSystem.Api")),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "SmartDiningSystem.Api")),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "backend", "SmartDiningSystem.Api"))
+        };
 
-        if (File.Exists(Path.Combine(currentDirectory, "appsettings.json")))
+        foreach (var candidateDirectory in candidateDirectories.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            return currentDirectory;
+            if (File.Exists(Path.Combine(candidateDirectory, "appsettings.json")))
+            {
+                return candidateDirectory;
+            }
         }
 
         throw new FileNotFoundException("Could not locate appsettings.json for design-time AppDbContext creation.");

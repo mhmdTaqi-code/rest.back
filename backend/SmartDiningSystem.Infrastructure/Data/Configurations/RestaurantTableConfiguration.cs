@@ -12,21 +12,38 @@ public class RestaurantTableConfiguration : IEntityTypeConfiguration<RestaurantT
 
         builder.HasKey(table => table.Id);
 
-        builder.Property(table => table.TableCode)
+        builder.Property(table => table.TableNumber)
+            .IsRequired()
+            .ValueGeneratedNever();
+
+        builder.Property(table => table.TableToken)
             .IsRequired()
             .HasMaxLength(128);
 
-        builder.Property(table => table.DisplayName)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(table => table.IsActive)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(table => table.CreatedAtUtc)
+            .IsRequired()
+            .HasConversion<UtcDateTimeConverter>();
+
+        builder.Property(table => table.UpdatedAtUtc)
+            .IsRequired()
+            .HasConversion<UtcDateTimeConverter>();
 
         builder.HasIndex(table => table.RestaurantId);
 
-        builder.HasIndex(table => table.TableCode)
+        builder.HasIndex(table => table.TableToken)
             .IsUnique();
+
+        builder.HasIndex(table => new { table.RestaurantId, table.TableNumber })
+            .IsUnique();
+
+        builder.HasOne(table => table.Restaurant)
+            .WithMany(restaurant => restaurant.Tables)
+            .HasForeignKey(table => table.RestaurantId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(table => table.TableCarts)
             .WithOne(cart => cart.RestaurantTable)

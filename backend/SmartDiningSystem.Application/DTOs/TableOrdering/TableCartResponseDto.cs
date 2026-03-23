@@ -6,6 +6,7 @@ public class TableCartResponseDto
     public Guid RestaurantId { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
     public Guid RestaurantTableId { get; set; }
+    public int TableNumber { get; set; }
     public string TableDisplayName { get; set; } = string.Empty;
     public string TableToken { get; set; } = string.Empty;
     public IReadOnlyList<TableCartItemDto> Items { get; set; } = Array.Empty<TableCartItemDto>();

@@ -45,7 +45,8 @@ public class TableOrderService : ITableOrderService
 
         var cart = await _dbContext.TableCarts
             .Include(entity => entity.Items)
-            .ThenInclude(item => item.MenuItem)!
+            // EF uses this include path to load optional navigations; runtime validation below still guards nulls.
+            .ThenInclude(item => item.MenuItem!)
             .ThenInclude(menuItem => menuItem.MenuCategory)
             .FirstOrDefaultAsync(
                 entity => entity.UserId == userId && entity.RestaurantTableId == table.RestaurantTableId,
@@ -97,6 +98,18 @@ public class TableOrderService : ITableOrderService
             }
         }
 
+        var validCartItems = new List<(Guid MenuItemId, int Quantity, decimal UnitPrice)>(cart.Items.Count);
+        foreach (var cartItem in cart.Items)
+        {
+            var menuItem = cartItem.MenuItem;
+            if (menuItem is null)
+            {
+                continue;
+            }
+
+            validCartItems.Add((cartItem.MenuItemId, cartItem.Quantity, menuItem.Price));
+        }
+
         var nowUtc = DateTime.UtcNow;
         var order = new Order
         {
@@ -107,13 +120,13 @@ public class TableOrderService : ITableOrderService
             Status = OrderStatus.Received,
             CreatedAtUtc = nowUtc,
             UpdatedAtUtc = nowUtc,
-            OrderItems = cart.Items
+            OrderItems = validCartItems
                 .Select(item => new OrderItem
                 {
                     Id = Guid.NewGuid(),
                     MenuItemId = item.MenuItemId,
                     Quantity = item.Quantity,
-                    UnitPrice = item.MenuItem!.Price
+                    UnitPrice = item.UnitPrice
                 })
                 .ToList()
         };
@@ -134,7 +147,10 @@ public class TableOrderService : ITableOrderService
             OrderId = order.Id,
             UserId = order.UserId,
             RestaurantId = order.RestaurantId,
+            RestaurantName = table.RestaurantName,
             RestaurantTableId = order.RestaurantTableId,
+            TableNumber = table.TableNumber,
+            TableToken = table.TableToken,
             Status = order.Status.ToString(),
             ItemCount = order.OrderItems.Sum(item => item.Quantity),
             TotalAmount = totalAmount,

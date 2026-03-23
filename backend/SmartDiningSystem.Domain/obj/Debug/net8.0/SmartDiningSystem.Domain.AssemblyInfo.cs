@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartDiningSystem.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+60ac8088a8bf5c5185678d19abe7922fc589f5e4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4bbd9c50a9702c9a9c75096db31d09ae85884ebd")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartDiningSystem.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartDiningSystem.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

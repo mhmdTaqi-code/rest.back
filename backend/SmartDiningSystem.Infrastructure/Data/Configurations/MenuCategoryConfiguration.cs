@@ -16,8 +16,12 @@ public class MenuCategoryConfiguration : IEntityTypeConfiguration<MenuCategory>
             .IsRequired()
             .HasMaxLength(150);
 
+        builder.Property(category => category.Description)
+            .HasMaxLength(1000);
+
         builder.Property(category => category.DisplayOrder)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValue(0);
 
         builder.Property(category => category.IsActive)
             .IsRequired()

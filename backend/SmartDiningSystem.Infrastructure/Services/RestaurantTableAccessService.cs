@@ -23,16 +23,18 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
 
         var table = await _dbContext.RestaurantTables
             .AsNoTracking()
-            .Where(entity => entity.TableCode == normalizedToken)
+            .Where(entity => entity.TableToken == normalizedToken)
             .Select(entity => new
             {
                 entity.Id,
-                entity.DisplayName,
-                entity.TableCode,
+                entity.TableNumber,
+                entity.TableToken,
                 entity.IsActive,
-                RestaurantId = entity.Restaurant!.Id,
-                RestaurantName = entity.Restaurant.Name,
-                entity.Restaurant.ApprovalStatus
+                entity.RestaurantId,
+                RestaurantName = entity.Restaurant != null ? entity.Restaurant.Name : null,
+                ApprovalStatus = entity.Restaurant != null
+                    ? entity.Restaurant.ApprovalStatus
+                    : (RestaurantApprovalStatus?)null
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -58,6 +60,17 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
                 });
         }
 
+        if (table.ApprovalStatus is null || string.IsNullOrWhiteSpace(table.RestaurantName))
+        {
+            throw new TableOrderingServiceException(
+                "This restaurant table is not linked to a valid restaurant.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    ["tableToken"] = ["The table is not available for ordering."]
+                });
+        }
+
         if (table.ApprovalStatus != RestaurantApprovalStatus.Approved)
         {
             throw new TableOrderingServiceException(
@@ -74,8 +87,9 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
             RestaurantId = table.RestaurantId,
             RestaurantName = table.RestaurantName,
             RestaurantTableId = table.Id,
-            TableDisplayName = table.DisplayName,
-            TableToken = table.TableCode,
+            TableNumber = table.TableNumber,
+            TableDisplayName = $"Table {table.TableNumber}",
+            TableToken = table.TableToken,
             RequiresAuthenticationForOrdering = true
         };
     }

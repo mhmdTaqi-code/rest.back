@@ -114,6 +114,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdminDashboardService, AdminDashboardService>();
         services.AddScoped<IAdminRestaurantService, AdminRestaurantService>();
         services.AddScoped<IRestaurantQueryService, RestaurantQueryService>();
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IMenuItemService, MenuItemService>();
+        services.AddScoped<IRestaurantTableManagementService, RestaurantTableManagementService>();
         services.AddScoped<IRestaurantTableAccessService, RestaurantTableAccessService>();
         services.AddScoped<IPublicTableMenuService, PublicTableMenuService>();
         services.AddScoped<ITableCartService, TableCartService>();

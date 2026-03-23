@@ -167,7 +167,8 @@ public class TableCartService : ITableCartService
     {
         return await _dbContext.TableCarts
             .Include(cart => cart.Items)
-            .ThenInclude(item => item.MenuItem)!
+            // EF uses this include path to load optional navigations; mapping/validation below still guards nulls.
+            .ThenInclude(item => item.MenuItem!)
             .ThenInclude(menuItem => menuItem.MenuCategory)
             .Include(cart => cart.Restaurant)
             .Include(cart => cart.RestaurantTable)
@@ -237,6 +238,7 @@ public class TableCartService : ITableCartService
             RestaurantId = table.RestaurantId,
             RestaurantName = table.RestaurantName,
             RestaurantTableId = table.RestaurantTableId,
+            TableNumber = table.TableNumber,
             TableDisplayName = table.TableDisplayName,
             TableToken = table.TableToken,
             Items = Array.Empty<TableCartItemDto>(),
@@ -247,22 +249,37 @@ public class TableCartService : ITableCartService
 
     private static TableCartResponseDto MapCart(TableCart cart, ResolvedRestaurantTableDto table)
     {
-        var items = cart.Items
-            .OrderBy(item => item.MenuItem!.MenuCategory!.DisplayOrder)
-            .ThenBy(item => item.MenuItem!.Name)
-            .Select(item => new TableCartItemDto
+        var validItems = new List<(int CategoryDisplayOrder, string MenuItemName, TableCartItemDto ItemDto)>();
+
+        foreach (var cartItem in cart.Items)
+        {
+            var menuItem = cartItem.MenuItem;
+            var category = menuItem?.MenuCategory;
+            if (menuItem is null || category is null || !menuItem.MenuCategoryId.HasValue)
             {
-                CartItemId = item.Id,
-                MenuItemId = item.MenuItemId,
-                MenuCategoryId = item.MenuItem!.MenuCategoryId!.Value,
-                MenuCategoryName = item.MenuItem.MenuCategory!.Name,
-                MenuItemName = item.MenuItem.Name,
-                Description = item.MenuItem.Description,
-                UnitPrice = item.MenuItem.Price,
-                Quantity = item.Quantity,
-                LineTotal = item.MenuItem.Price * item.Quantity,
-                IsAvailable = item.MenuItem.IsAvailable && item.MenuItem.MenuCategory!.IsActive
-            })
+                continue;
+            }
+
+            validItems.Add((category.DisplayOrder, menuItem.Name, new TableCartItemDto
+            {
+                CartItemId = cartItem.Id,
+                MenuItemId = cartItem.MenuItemId,
+                MenuCategoryId = menuItem.MenuCategoryId.Value,
+                MenuCategoryName = category.Name,
+                MenuItemName = menuItem.Name,
+                Description = menuItem.Description,
+                ImageUrl = menuItem.ImageUrl,
+                UnitPrice = menuItem.Price,
+                Quantity = cartItem.Quantity,
+                LineTotal = menuItem.Price * cartItem.Quantity,
+                IsAvailable = menuItem.IsAvailable && category.IsActive
+            }));
+        }
+
+        var items = validItems
+            .OrderBy(item => item.CategoryDisplayOrder)
+            .ThenBy(item => item.MenuItemName)
+            .Select(item => item.ItemDto)
             .ToList();
 
         return new TableCartResponseDto
@@ -271,6 +288,7 @@ public class TableCartService : ITableCartService
             RestaurantId = table.RestaurantId,
             RestaurantName = table.RestaurantName,
             RestaurantTableId = table.RestaurantTableId,
+            TableNumber = table.TableNumber,
             TableDisplayName = table.TableDisplayName,
             TableToken = table.TableToken,
             Items = items,

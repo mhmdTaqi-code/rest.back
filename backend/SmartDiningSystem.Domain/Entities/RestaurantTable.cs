@@ -4,9 +4,11 @@ public class RestaurantTable
 {
     public Guid Id { get; set; }
     public Guid RestaurantId { get; set; }
-    public string TableCode { get; set; } = string.Empty;
-    public string DisplayName { get; set; } = string.Empty;
+    public int TableNumber { get; set; }
+    public string TableToken { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
 
     public Restaurant? Restaurant { get; set; }
     public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();

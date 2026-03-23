@@ -10,6 +10,10 @@ public interface IOtpService
         PendingRegistration pendingRegistration,
         CancellationToken cancellationToken = default);
 
+    Task<OtpDispatchResponseDto> ResendRegistrationOtpAsync(
+        PendingRegistration pendingRegistration,
+        CancellationToken cancellationToken = default);
+
     Task<OtpCode> GetValidOtpAsync(
         string phoneNumber,
         string code,

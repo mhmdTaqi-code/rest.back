@@ -12,7 +12,7 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         {
             tableBuilder.HasCheckConstraint(
                 "CK_MenuItems_Price_Positive",
-                "\"Price\" > 0");
+                "\"Price\" >= 0");
         });
 
         builder.HasKey(menuItem => menuItem.Id);
@@ -28,8 +28,16 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
             .IsRequired()
             .HasPrecision(18, 2);
 
+        builder.Property(menuItem => menuItem.ImageUrl)
+            .IsRequired()
+            .HasMaxLength(1000);
+
         builder.Property(menuItem => menuItem.IsAvailable)
             .IsRequired();
+
+        builder.Property(menuItem => menuItem.DisplayOrder)
+            .IsRequired()
+            .HasDefaultValue(0);
 
         builder.Property(menuItem => menuItem.CreatedAtUtc)
             .IsRequired()
