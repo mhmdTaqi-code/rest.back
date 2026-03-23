@@ -1,7 +1,8 @@
-using SmartDiningSystem.Api.Extensions;
-using SmartDiningSystem.Application.DTOs.Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
+using Npgsql;
+using SmartDiningSystem.Api.Extensions;
+using SmartDiningSystem.Application.DTOs.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,22 +10,18 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Support Render PORT binding
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(renderPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
+}
+
 // Support Render DATABASE_URL if present
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrWhiteSpace(databaseUrl))
 {
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':', 2);
-
-    var host = uri.Host;
-    var port = uri.Port > 0 ? uri.Port : 5432;
-    var database = uri.AbsolutePath.Trim('/');
-    var username = Uri.UnescapeDataString(userInfo[0]);
-    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
-
-    var connectionString =
-        $"Host={host};Port={port};Database={database};Username={username};Password={password};SslMode=Require;Trust Server Certificate=true;Include Error Detail=true;Timeout=15;Command Timeout=30";
-
+    var connectionString = BuildNpgsqlConnectionStringFromDatabaseUrl(databaseUrl);
     builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 }
 
@@ -103,3 +100,51 @@ app.MapControllerRoute(
     defaults: new { area = "Admin" });
 
 app.Run();
+
+static string BuildNpgsqlConnectionStringFromDatabaseUrl(string databaseUrl)
+{
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+        throw new InvalidOperationException("DATABASE_URL is missing or empty.");
+
+    // Render عادة تعطي postgresql://...
+    // Uri يتعامل بشكل أفضل إذا كانت الصيغة postgres:// أو postgresql://
+    if (databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    {
+        databaseUrl = "postgresql://" + databaseUrl["postgres://".Length..];
+    }
+
+    if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var uri))
+        throw new InvalidOperationException("DATABASE_URL is not a valid absolute URI.");
+
+    if (string.IsNullOrWhiteSpace(uri.Host))
+        throw new InvalidOperationException("DATABASE_URL does not contain a valid host.");
+
+    var database = uri.AbsolutePath.Trim('/');
+    if (string.IsNullOrWhiteSpace(database))
+        throw new InvalidOperationException("DATABASE_URL does not contain a database name.");
+
+    var userInfo = uri.UserInfo.Split(':', 2, StringSplitOptions.None);
+    if (userInfo.Length == 0 || string.IsNullOrWhiteSpace(userInfo[0]))
+        throw new InvalidOperationException("DATABASE_URL does not contain a valid username.");
+
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
+    var port = uri.Port > 0 ? uri.Port : 5432;
+
+    var csb = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = port,
+        Database = database,
+        Username = username,
+        Password = password,
+        SslMode = SslMode.Require,
+        TrustServerCertificate = true,
+        IncludeErrorDetail = true,
+        Timeout = 15,
+        CommandTimeout = 30,
+        Pooling = true
+    };
+
+    return csb.ConnectionString;
+}
