@@ -1,31 +1,17 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.OpenApi.Models;
 using Npgsql;
 using SmartDiningSystem.Api.Extensions;
 using SmartDiningSystem.Application.DTOs.Common;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-ApplyRenderConfiguration(builder);
+NormalizeDatabaseConfiguration(builder);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
-
-// دعم PORT من Render
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrEmpty(port))
-{
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-}
-
-// استخدم DATABASE_URL مباشرة بدون parsing
-var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-if (!string.IsNullOrEmpty(databaseUrl))
-{
-    builder.Configuration["ConnectionStrings:DefaultConnection"] = databaseUrl;
-}
 
 builder.Services.AddControllersWithViews();
 
@@ -103,17 +89,19 @@ app.MapControllerRoute(
 
 app.Run();
 
-static void ApplyRenderConfiguration(WebApplicationBuilder builder)
+static void NormalizeDatabaseConfiguration(WebApplicationBuilder builder)
 {
     ArgumentNullException.ThrowIfNull(builder);
 
-    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-    if (!string.IsNullOrWhiteSpace(databaseUrl))
+    var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (LooksLikePostgresUrl(configuredConnectionString))
     {
-        var connectionString = BuildNpgsqlConnectionStringFromDatabaseUrl(databaseUrl);
+        var normalizedConnectionString =
+            BuildNpgsqlConnectionStringFromDatabaseUrl(configuredConnectionString!);
+
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ConnectionStrings:DefaultConnection"] = connectionString
+            ["ConnectionStrings:DefaultConnection"] = normalizedConnectionString
         });
     }
 
@@ -124,30 +112,45 @@ static void ApplyRenderConfiguration(WebApplicationBuilder builder)
     }
 }
 
+static bool LooksLikePostgresUrl(string? connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        return false;
+    }
+
+    return connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+        || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase);
+}
+
 static string BuildNpgsqlConnectionStringFromDatabaseUrl(string databaseUrl)
 {
     ArgumentException.ThrowIfNullOrWhiteSpace(databaseUrl);
 
     if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var databaseUri))
     {
-        throw new InvalidOperationException("DATABASE_URL is not a valid absolute URI.");
+        throw new InvalidOperationException(
+            "ConnectionStrings:DefaultConnection is not a valid absolute PostgreSQL URI.");
     }
 
     if (!string.Equals(databaseUri.Scheme, "postgres", StringComparison.OrdinalIgnoreCase)
         && !string.Equals(databaseUri.Scheme, "postgresql", StringComparison.OrdinalIgnoreCase))
     {
-        throw new InvalidOperationException("DATABASE_URL must use the postgres or postgresql scheme.");
+        throw new InvalidOperationException(
+            "ConnectionStrings:DefaultConnection must use the postgres or postgresql scheme.");
     }
 
     if (string.IsNullOrWhiteSpace(databaseUri.Host))
     {
-        throw new InvalidOperationException("DATABASE_URL must include a PostgreSQL host.");
+        throw new InvalidOperationException(
+            "ConnectionStrings:DefaultConnection must include a PostgreSQL host.");
     }
 
     var databaseName = Uri.UnescapeDataString(databaseUri.AbsolutePath.Trim('/'));
     if (string.IsNullOrWhiteSpace(databaseName))
     {
-        throw new InvalidOperationException("DATABASE_URL must include a PostgreSQL database name.");
+        throw new InvalidOperationException(
+            "ConnectionStrings:DefaultConnection must include a PostgreSQL database name.");
     }
 
     var userInfoParts = databaseUri.UserInfo.Split(':', 2, StringSplitOptions.None);
@@ -155,10 +158,11 @@ static string BuildNpgsqlConnectionStringFromDatabaseUrl(string databaseUrl)
         || string.IsNullOrWhiteSpace(userInfoParts[0])
         || string.IsNullOrWhiteSpace(userInfoParts[1]))
     {
-        throw new InvalidOperationException("DATABASE_URL must include both username and password.");
+        throw new InvalidOperationException(
+            "ConnectionStrings:DefaultConnection must include both username and password.");
     }
 
-    var builder = new NpgsqlConnectionStringBuilder
+    var connectionStringBuilder = new NpgsqlConnectionStringBuilder
     {
         Host = databaseUri.Host,
         Port = databaseUri.Port > 0 ? databaseUri.Port : 5432,
@@ -173,20 +177,14 @@ static string BuildNpgsqlConnectionStringFromDatabaseUrl(string databaseUrl)
     if (queryParameters.TryGetValue("sslmode", out var sslModeValue)
         && Enum.TryParse<SslMode>(sslModeValue.ToString(), true, out var sslMode))
     {
-        builder.SslMode = sslMode;
+        connectionStringBuilder.SslMode = sslMode;
     }
 
-    if (queryParameters.TryGetValue("trust server certificate", out var trustServerCertificateValue)
+    if (queryParameters.TryGetValue("trustservercertificate", out var trustServerCertificateValue)
         && bool.TryParse(trustServerCertificateValue.ToString(), out var trustServerCertificate))
     {
-        builder.TrustServerCertificate = trustServerCertificate;
+        connectionStringBuilder.TrustServerCertificate = trustServerCertificate;
     }
 
-    if (queryParameters.TryGetValue("trustservercertificate", out trustServerCertificateValue)
-        && bool.TryParse(trustServerCertificateValue.ToString(), out trustServerCertificate))
-    {
-        builder.TrustServerCertificate = trustServerCertificate;
-    }
-
-    return builder.ConnectionString;
+    return connectionStringBuilder.ConnectionString;
 }

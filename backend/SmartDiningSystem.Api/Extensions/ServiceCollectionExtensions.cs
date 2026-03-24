@@ -29,8 +29,9 @@ public static class ServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            connectionString =
-                "Host=localhost;Port=5433;Database=SmartDiningDb;Username=postgres;Password=123456";
+            throw new InvalidOperationException(
+                "Connection string 'DefaultConnection' is not configured. " +
+                "Set ConnectionStrings__DefaultConnection in the environment or configuration.");
         }
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
