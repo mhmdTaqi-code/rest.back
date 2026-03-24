@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
-using Npgsql;
 using SmartDiningSystem.Api.Extensions;
 using SmartDiningSystem.Application.DTOs.Common;
+using SmartDiningSystem.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,10 +94,11 @@ static void NormalizeDatabaseConfiguration(WebApplicationBuilder builder)
     ArgumentNullException.ThrowIfNull(builder);
 
     var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (LooksLikePostgresUrl(configuredConnectionString))
+    if (!string.IsNullOrWhiteSpace(configuredConnectionString))
     {
-        var normalizedConnectionString =
-            BuildNpgsqlConnectionStringFromDatabaseUrl(configuredConnectionString!);
+        var normalizedConnectionString = PostgresConnectionStringResolver.NormalizeIfNeeded(
+            configuredConnectionString,
+            "ConnectionStrings:DefaultConnection");
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -110,81 +111,4 @@ static void NormalizeDatabaseConfiguration(WebApplicationBuilder builder)
     {
         builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
     }
-}
-
-static bool LooksLikePostgresUrl(string? connectionString)
-{
-    if (string.IsNullOrWhiteSpace(connectionString))
-    {
-        return false;
-    }
-
-    return connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
-        || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase);
-}
-
-static string BuildNpgsqlConnectionStringFromDatabaseUrl(string databaseUrl)
-{
-    ArgumentException.ThrowIfNullOrWhiteSpace(databaseUrl);
-
-    if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var databaseUri))
-    {
-        throw new InvalidOperationException(
-            "ConnectionStrings:DefaultConnection is not a valid absolute PostgreSQL URI.");
-    }
-
-    if (!string.Equals(databaseUri.Scheme, "postgres", StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(databaseUri.Scheme, "postgresql", StringComparison.OrdinalIgnoreCase))
-    {
-        throw new InvalidOperationException(
-            "ConnectionStrings:DefaultConnection must use the postgres or postgresql scheme.");
-    }
-
-    if (string.IsNullOrWhiteSpace(databaseUri.Host))
-    {
-        throw new InvalidOperationException(
-            "ConnectionStrings:DefaultConnection must include a PostgreSQL host.");
-    }
-
-    var databaseName = Uri.UnescapeDataString(databaseUri.AbsolutePath.Trim('/'));
-    if (string.IsNullOrWhiteSpace(databaseName))
-    {
-        throw new InvalidOperationException(
-            "ConnectionStrings:DefaultConnection must include a PostgreSQL database name.");
-    }
-
-    var userInfoParts = databaseUri.UserInfo.Split(':', 2, StringSplitOptions.None);
-    if (userInfoParts.Length != 2
-        || string.IsNullOrWhiteSpace(userInfoParts[0])
-        || string.IsNullOrWhiteSpace(userInfoParts[1]))
-    {
-        throw new InvalidOperationException(
-            "ConnectionStrings:DefaultConnection must include both username and password.");
-    }
-
-    var connectionStringBuilder = new NpgsqlConnectionStringBuilder
-    {
-        Host = databaseUri.Host,
-        Port = databaseUri.Port > 0 ? databaseUri.Port : 5432,
-        Database = databaseName,
-        Username = Uri.UnescapeDataString(userInfoParts[0]),
-        Password = Uri.UnescapeDataString(userInfoParts[1]),
-        SslMode = SslMode.Require,
-        TrustServerCertificate = true
-    };
-
-    var queryParameters = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(databaseUri.Query);
-    if (queryParameters.TryGetValue("sslmode", out var sslModeValue)
-        && Enum.TryParse<SslMode>(sslModeValue.ToString(), true, out var sslMode))
-    {
-        connectionStringBuilder.SslMode = sslMode;
-    }
-
-    if (queryParameters.TryGetValue("trustservercertificate", out var trustServerCertificateValue)
-        && bool.TryParse(trustServerCertificateValue.ToString(), out var trustServerCertificate))
-    {
-        connectionStringBuilder.TrustServerCertificate = trustServerCertificate;
-    }
-
-    return connectionStringBuilder.ConnectionString;
 }

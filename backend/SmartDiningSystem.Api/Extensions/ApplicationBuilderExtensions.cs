@@ -27,16 +27,26 @@ public static class ApplicationBuilderExtensions
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Database migration failed. Seed will not run.");
+            logger.LogError(exception, "Database migration failed. Seed and schema validation will not run.");
             throw;
         }
 
-        await ValidateRequiredSchemaAsync(dbContext, logger);
-
         var adminSeedService = services.GetRequiredService<AdminSeedService>();
-        logger.LogInformation("Starting seed");
-        await adminSeedService.SeedAsync();
-        logger.LogInformation("Seed completed");
+        try
+        {
+            logger.LogInformation("Starting seed");
+            await adminSeedService.SeedAsync();
+            logger.LogInformation("Seed completed");
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Database seed failed. Schema validation will not run.");
+            throw;
+        }
+
+        logger.LogInformation("Starting schema validation");
+        await ValidateRequiredSchemaAsync(dbContext, logger);
+        logger.LogInformation("Schema validation completed");
     }
 
     private static async Task ValidateRequiredSchemaAsync(AppDbContext dbContext, ILogger logger)
@@ -54,9 +64,9 @@ public static class ApplicationBuilderExtensions
         {
             logger.LogError(
                 exception,
-                "Required schema validation failed after database migration. Startup will be stopped.");
+                "Required schema validation failed after database migration and seed. Startup will be stopped.");
             throw new InvalidOperationException(
-                "Database schema is inconsistent after migration. Required tables are still missing.",
+                "Database schema is inconsistent after migration and seed. Required tables are still missing.",
                 exception);
         }
     }

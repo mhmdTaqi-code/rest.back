@@ -19,8 +19,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5433;Database=SmartDiningDb;Username=postgres;Password=123456";
+        var connectionString = PostgresConnectionStringResolver.ResolveRequiredConnectionString(configuration);
 
         optionsBuilder.UseNpgsql(connectionString, npgsqlOptions =>
             npgsqlOptions.MigrationsAssembly("SmartDiningSystem.Infrastructure"));

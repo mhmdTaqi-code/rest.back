@@ -26,13 +26,7 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' is not configured. " +
-                "Set ConnectionStrings__DefaultConnection in the environment or configuration.");
-        }
+        var connectionString = PostgresConnectionStringResolver.ResolveRequiredConnectionString(configuration);
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<IraqOtpOptions>(configuration.GetSection(IraqOtpOptions.SectionName));
