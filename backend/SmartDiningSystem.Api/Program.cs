@@ -6,6 +6,7 @@ using SmartDiningSystem.Application.DTOs.Common;
 using SmartDiningSystem.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+const string RenderOpenCorsPolicy = "RenderOpenCorsPolicy";
 
 NormalizeDatabaseConfiguration(builder);
 
@@ -14,6 +15,16 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(RenderOpenCorsPolicy, policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
@@ -72,6 +83,7 @@ app.UseSwaggerUI();
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors(RenderOpenCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
