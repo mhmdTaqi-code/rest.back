@@ -24,13 +24,14 @@ public class TableOrderService : ITableOrderService
 
     public async Task<SubmittedTableOrderResponseDto> SubmitOrderAsync(
         Guid userId,
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         SubmitTableOrderRequestDto request,
         CancellationToken cancellationToken)
     {
         _ = request;
 
-        var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
+        var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
 
         var userExists = await _dbContext.UserAccounts
             .AsNoTracking()

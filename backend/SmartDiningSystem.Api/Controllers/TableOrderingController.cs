@@ -10,7 +10,7 @@ using SmartDiningSystem.Application.Services.Interfaces;
 namespace SmartDiningSystem.Api.Controllers;
 
 [ApiController]
-[Route("api/table-ordering/tables/{tableToken}")]
+[Route("api/table-ordering/restaurants/{restaurantId:guid}/tables/{tableId:guid}")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class TableOrderingController : ControllerBase
 {
@@ -30,7 +30,8 @@ public class TableOrderingController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<TableCartResponseDto>>> GetCurrentCart(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         CancellationToken cancellationToken)
     {
         var userId = GetUserIdOrUnauthorized();
@@ -41,7 +42,7 @@ public class TableOrderingController : ControllerBase
 
         try
         {
-            var cart = await _tableCartService.GetCurrentCartAsync(userId.Value, tableToken, cancellationToken);
+            var cart = await _tableCartService.GetCurrentCartAsync(userId.Value, restaurantId, tableId, cancellationToken);
             return Ok(new ApiSuccessResponseDto<TableCartResponseDto>
             {
                 Message = "Current cart loaded successfully.",
@@ -59,7 +60,8 @@ public class TableOrderingController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiSuccessResponseDto<TableCartResponseDto>>> AddItem(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         [FromBody] AddCartItemRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -71,7 +73,7 @@ public class TableOrderingController : ControllerBase
 
         try
         {
-            var cart = await _tableCartService.AddItemAsync(userId.Value, tableToken, request, cancellationToken);
+            var cart = await _tableCartService.AddItemAsync(userId.Value, restaurantId, tableId, request, cancellationToken);
             return Ok(new ApiSuccessResponseDto<TableCartResponseDto>
             {
                 Message = "Item added to cart successfully.",
@@ -90,7 +92,8 @@ public class TableOrderingController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<TableCartResponseDto>>> UpdateItem(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         Guid cartItemId,
         [FromBody] UpdateCartItemRequestDto request,
         CancellationToken cancellationToken)
@@ -103,7 +106,7 @@ public class TableOrderingController : ControllerBase
 
         try
         {
-            var cart = await _tableCartService.UpdateItemAsync(userId.Value, tableToken, cartItemId, request, cancellationToken);
+            var cart = await _tableCartService.UpdateItemAsync(userId.Value, restaurantId, tableId, cartItemId, request, cancellationToken);
             return Ok(new ApiSuccessResponseDto<TableCartResponseDto>
             {
                 Message = "Cart item updated successfully.",
@@ -121,7 +124,8 @@ public class TableOrderingController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<TableCartResponseDto>>> RemoveItem(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         Guid cartItemId,
         CancellationToken cancellationToken)
     {
@@ -133,7 +137,7 @@ public class TableOrderingController : ControllerBase
 
         try
         {
-            var cart = await _tableCartService.RemoveItemAsync(userId.Value, tableToken, cartItemId, cancellationToken);
+            var cart = await _tableCartService.RemoveItemAsync(userId.Value, restaurantId, tableId, cartItemId, cancellationToken);
             return Ok(new ApiSuccessResponseDto<TableCartResponseDto>
             {
                 Message = "Cart item removed successfully.",
@@ -151,7 +155,8 @@ public class TableOrderingController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiSuccessResponseDto<SubmittedTableOrderResponseDto>>> SubmitOrder(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         [FromBody] SubmitTableOrderRequestDto? request,
         CancellationToken cancellationToken)
     {
@@ -165,7 +170,8 @@ public class TableOrderingController : ControllerBase
         {
             var order = await _tableOrderService.SubmitOrderAsync(
                 userId.Value,
-                tableToken,
+                restaurantId,
+                tableId,
                 request ?? new SubmitTableOrderRequestDto(),
                 cancellationToken);
             return StatusCode(StatusCodes.Status201Created, new ApiSuccessResponseDto<SubmittedTableOrderResponseDto>

@@ -4,5 +4,8 @@ namespace SmartDiningSystem.Application.Services.Interfaces;
 
 public interface IRestaurantTableAccessService
 {
-    Task<ResolvedRestaurantTableDto> ResolveTableAsync(string tableToken, CancellationToken cancellationToken);
+    Task<ResolvedRestaurantTableDto> ResolveTableAsync(
+        Guid restaurantId,
+        Guid tableId,
+        CancellationToken cancellationToken);
 }

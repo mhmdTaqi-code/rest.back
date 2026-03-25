@@ -17,13 +17,16 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
         _dbContext = dbContext;
     }
 
-    public async Task<ResolvedRestaurantTableDto> ResolveTableAsync(string tableToken, CancellationToken cancellationToken)
+    public async Task<ResolvedRestaurantTableDto> ResolveTableAsync(
+        Guid restaurantId,
+        Guid tableId,
+        CancellationToken cancellationToken)
     {
-        var normalizedToken = NormalizeTableToken(tableToken);
+        ValidateRouteContext(restaurantId, tableId);
 
         var table = await _dbContext.RestaurantTables
             .AsNoTracking()
-            .Where(entity => entity.TableToken == normalizedToken)
+            .Where(entity => entity.Id == tableId)
             .Select(entity => new
             {
                 entity.Id,
@@ -41,11 +44,23 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
         if (table is null)
         {
             throw new TableOrderingServiceException(
-                "Table token is invalid.",
+                "Restaurant table was not found.",
                 StatusCodes.Status404NotFound,
                 new Dictionary<string, string[]>
                 {
-                    ["tableToken"] = ["The provided table token was not found."]
+                    ["tableId"] = ["The selected restaurant table was not found."]
+                });
+        }
+
+        if (table.RestaurantId != restaurantId)
+        {
+            throw new TableOrderingServiceException(
+                "The selected table does not belong to the specified restaurant.",
+                StatusCodes.Status400BadRequest,
+                new Dictionary<string, string[]>
+                {
+                    ["restaurantId"] = ["The selected table does not belong to the specified restaurant."],
+                    ["tableId"] = ["The selected table does not belong to the specified restaurant."]
                 });
         }
 
@@ -56,7 +71,7 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
                 StatusCodes.Status400BadRequest,
                 new Dictionary<string, string[]>
                 {
-                    ["tableToken"] = ["The selected restaurant table is inactive."]
+                    ["tableId"] = ["The selected restaurant table is inactive."]
                 });
         }
 
@@ -67,7 +82,8 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
                 StatusCodes.Status404NotFound,
                 new Dictionary<string, string[]>
                 {
-                    ["tableToken"] = ["The table is not available for ordering."]
+                    ["restaurantId"] = ["The selected restaurant was not found for this table."],
+                    ["tableId"] = ["The table is not available for ordering."]
                 });
         }
 
@@ -78,7 +94,8 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
                 StatusCodes.Status404NotFound,
                 new Dictionary<string, string[]>
                 {
-                    ["tableToken"] = ["The table is not available for ordering."]
+                    ["restaurantId"] = ["The selected restaurant is not available for ordering."],
+                    ["tableId"] = ["The table is not available for ordering."]
                 });
         }
 
@@ -94,19 +111,30 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
         };
     }
 
-    private static string NormalizeTableToken(string tableToken)
+    private static void ValidateRouteContext(Guid restaurantId, Guid tableId)
     {
-        if (string.IsNullOrWhiteSpace(tableToken))
+        Dictionary<string, string[]>? errors = null;
+
+        if (restaurantId == Guid.Empty)
         {
-            throw new TableOrderingServiceException(
-                "Table token is required.",
-                StatusCodes.Status400BadRequest,
-                new Dictionary<string, string[]>
-                {
-                    ["tableToken"] = ["Table token is required."]
-                });
+            errors = new Dictionary<string, string[]>
+            {
+                ["restaurantId"] = ["Restaurant id is required."]
+            };
         }
 
-        return tableToken.Trim();
+        if (tableId == Guid.Empty)
+        {
+            errors ??= new Dictionary<string, string[]>();
+            errors["tableId"] = ["Table id is required."];
+        }
+
+        if (errors is not null)
+        {
+            throw new TableOrderingServiceException(
+                "Restaurant and table identifiers are required.",
+                StatusCodes.Status400BadRequest,
+                errors);
+        }
     }
 }

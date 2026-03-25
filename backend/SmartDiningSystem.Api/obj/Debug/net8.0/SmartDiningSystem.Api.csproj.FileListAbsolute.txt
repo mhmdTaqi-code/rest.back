@@ -1,6 +1,5 @@
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\appsettings.Development.json
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\appsettings.json
-C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\SmartDiningSystem.Api.exe
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\SmartDiningSystem.Api.deps.json
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\SmartDiningSystem.Api.runtimeconfig.json
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\SmartDiningSystem.Api.dll
@@ -262,3 +261,4 @@ C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSyst
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Api\bin\Debug\net8.0\SmartDiningSystem.Api.exe

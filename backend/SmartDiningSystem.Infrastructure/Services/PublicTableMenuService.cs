@@ -18,9 +18,12 @@ public class PublicTableMenuService : IPublicTableMenuService
         _restaurantTableAccessService = restaurantTableAccessService;
     }
 
-    public async Task<PublicTableMenuResponseDto> GetPublicMenuAsync(string tableToken, CancellationToken cancellationToken)
+    public async Task<PublicTableMenuResponseDto> GetPublicMenuAsync(
+        Guid restaurantId,
+        Guid tableId,
+        CancellationToken cancellationToken)
     {
-        var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
+        var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
 
         var categories = await _dbContext.MenuCategories
             .AsNoTracking()

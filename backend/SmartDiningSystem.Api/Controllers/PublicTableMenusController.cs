@@ -7,7 +7,7 @@ using SmartDiningSystem.Application.Services.Interfaces;
 namespace SmartDiningSystem.Api.Controllers;
 
 [ApiController]
-[Route("api/public/tables")]
+[Route("api/public/restaurants/{restaurantId:guid}/tables/{tableId:guid}")]
 public class PublicTableMenusController : ControllerBase
 {
     private readonly IRestaurantTableAccessService _restaurantTableAccessService;
@@ -21,17 +21,18 @@ public class PublicTableMenusController : ControllerBase
         _publicTableMenuService = publicTableMenuService;
     }
 
-    [HttpGet("{tableToken}")]
+    [HttpGet]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<ResolvedRestaurantTableDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<ResolvedRestaurantTableDto>>> ResolveTable(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         CancellationToken cancellationToken)
     {
         try
         {
-            var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
+            var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
             return Ok(new ApiSuccessResponseDto<ResolvedRestaurantTableDto>
             {
                 Message = "Table resolved successfully.",
@@ -44,17 +45,18 @@ public class PublicTableMenusController : ControllerBase
         }
     }
 
-    [HttpGet("{tableToken}/menu")]
+    [HttpGet("menu")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<PublicTableMenuResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<PublicTableMenuResponseDto>>> GetMenu(
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         CancellationToken cancellationToken)
     {
         try
         {
-            var menu = await _publicTableMenuService.GetPublicMenuAsync(tableToken, cancellationToken);
+            var menu = await _publicTableMenuService.GetPublicMenuAsync(restaurantId, tableId, cancellationToken);
             return Ok(new ApiSuccessResponseDto<PublicTableMenuResponseDto>
             {
                 Message = "Public table menu loaded successfully.",

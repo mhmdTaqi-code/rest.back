@@ -6,7 +6,8 @@ public interface ITableOrderService
 {
     Task<SubmittedTableOrderResponseDto> SubmitOrderAsync(
         Guid userId,
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         SubmitTableOrderRequestDto request,
         CancellationToken cancellationToken);
 }

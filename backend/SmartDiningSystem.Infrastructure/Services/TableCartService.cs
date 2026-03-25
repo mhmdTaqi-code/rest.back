@@ -21,27 +21,28 @@ public class TableCartService : ITableCartService
         _restaurantTableAccessService = restaurantTableAccessService;
     }
 
-    public async Task<TableCartResponseDto> GetCurrentCartAsync(Guid userId, string tableToken, CancellationToken cancellationToken)
+    public async Task<TableCartResponseDto> GetCurrentCartAsync(
+        Guid userId,
+        Guid restaurantId,
+        Guid tableId,
+        CancellationToken cancellationToken)
     {
         await EnsureActiveUserAsync(userId, cancellationToken);
 
-        var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
-        var cart = await LoadCartAsync(userId, table.RestaurantTableId, cancellationToken);
-
-        return cart is null
-            ? BuildEmptyCart(table)
-            : MapCart(cart, table);
+        var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
+        return await GetCurrentCartAsync(userId, table, cancellationToken);
     }
 
     public async Task<TableCartResponseDto> AddItemAsync(
         Guid userId,
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         AddCartItemRequestDto request,
         CancellationToken cancellationToken)
     {
         await EnsureActiveUserAsync(userId, cancellationToken);
 
-        var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
+        var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
         await LoadValidMenuItemAsync(table.RestaurantId, request.MenuItemId, cancellationToken);
 
         var cart = await LoadCartAsync(userId, table.RestaurantTableId, cancellationToken);
@@ -80,19 +81,20 @@ public class TableCartService : ITableCartService
         await _dbContext.SaveChangesAsync(cancellationToken);
         await _dbContext.Entry(cart).Collection(entity => entity.Items).LoadAsync(cancellationToken);
 
-        return await GetCurrentCartAsync(userId, table.TableToken, cancellationToken);
+        return await GetCurrentCartAsync(userId, table, cancellationToken);
     }
 
     public async Task<TableCartResponseDto> UpdateItemAsync(
         Guid userId,
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         Guid cartItemId,
         UpdateCartItemRequestDto request,
         CancellationToken cancellationToken)
     {
         await EnsureActiveUserAsync(userId, cancellationToken);
 
-        var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
+        var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
         var cart = await LoadCartAsync(userId, table.RestaurantTableId, cancellationToken);
         if (cart is null)
         {
@@ -112,18 +114,19 @@ public class TableCartService : ITableCartService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetCurrentCartAsync(userId, table.TableToken, cancellationToken);
+        return await GetCurrentCartAsync(userId, table, cancellationToken);
     }
 
     public async Task<TableCartResponseDto> RemoveItemAsync(
         Guid userId,
-        string tableToken,
+        Guid restaurantId,
+        Guid tableId,
         Guid cartItemId,
         CancellationToken cancellationToken)
     {
         await EnsureActiveUserAsync(userId, cancellationToken);
 
-        var table = await _restaurantTableAccessService.ResolveTableAsync(tableToken, cancellationToken);
+        var table = await _restaurantTableAccessService.ResolveTableAsync(restaurantId, tableId, cancellationToken);
         var cart = await LoadCartAsync(userId, table.RestaurantTableId, cancellationToken);
         if (cart is null)
         {
@@ -146,7 +149,19 @@ public class TableCartService : ITableCartService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return await GetCurrentCartAsync(userId, table.TableToken, cancellationToken);
+        return await GetCurrentCartAsync(userId, table, cancellationToken);
+    }
+
+    private async Task<TableCartResponseDto> GetCurrentCartAsync(
+        Guid userId,
+        ResolvedRestaurantTableDto table,
+        CancellationToken cancellationToken)
+    {
+        var cart = await LoadCartAsync(userId, table.RestaurantTableId, cancellationToken);
+
+        return cart is null
+            ? BuildEmptyCart(table)
+            : MapCart(cart, table);
     }
 
     private async Task EnsureActiveUserAsync(Guid userId, CancellationToken cancellationToken)
