@@ -1,0 +1,5 @@
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Domain\.buildtemp\mainadmin-config-verify\obj\Debug\net8.0\SmartDiningSystem.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Domain\.buildtemp\mainadmin-config-verify\obj\Debug\net8.0\SmartDiningSystem.Domain.AssemblyInfoInputs.cache
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Domain\.buildtemp\mainadmin-config-verify\obj\Debug\net8.0\SmartDiningSystem.Domain.AssemblyInfo.cs
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Domain\.buildtemp\mainadmin-config-verify\obj\Debug\net8.0\SmartDiningSystem.Domain.csproj.CoreCompileInputs.cache
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Domain\.buildtemp\mainadmin-config-verify\obj\Debug\net8.0\SmartDiningSystem.Domain.sourcelink.json

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartDiningSystem.Application.Areas.Admin.Models;
 using SmartDiningSystem.Application.Configuration;
+using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
 
 namespace SmartDiningSystem.Api.Areas.Admin.Controllers;
@@ -33,23 +34,33 @@ public class AuthController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(AdminLoginViewModel model)
     {
-        if (!ModelState.IsValid)
+        try
         {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var principal = await _adminAuthenticationService.AuthenticateAsync(
+                model.Username,
+                model.Password,
+                HttpContext.RequestAborted);
+            if (principal is null)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid admin credentials.");
+                return View(model);
+            }
+
+            await HttpContext.SignInAsync(AdminAuthenticationDefaults.CookieScheme, principal);
+
+            return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+        }
+        catch (AdminAuthenticationConfigurationException)
+        {
+            ModelState.AddModelError(
+                string.Empty,
+                "Main Admin credentials are not configured on this server. Contact the system administrator.");
             return View(model);
         }
-
-        var principal = await _adminAuthenticationService.AuthenticateAsync(
-            model.Username,
-            model.Password,
-            HttpContext.RequestAborted);
-        if (principal is null)
-        {
-            ModelState.AddModelError(string.Empty, "Invalid admin credentials.");
-            return View(model);
-        }
-
-        await HttpContext.SignInAsync(AdminAuthenticationDefaults.CookieScheme, principal);
-
-        return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
     }
 }
