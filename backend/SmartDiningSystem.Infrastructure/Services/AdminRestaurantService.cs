@@ -125,7 +125,6 @@ public class AdminRestaurantService : IAdminRestaurantService
             RestaurantAddress = entity.Address,
             RestaurantPhoneNumber = entity.ContactPhone,
             OwnerName = entity.Owner!.FullName,
-            OwnerEmail = entity.Owner!.Email,
             OwnerPhoneNumber = entity.Owner!.PhoneNumber,
             ApprovalStatus = entity.ApprovalStatus.ToString(),
             RejectionReason = entity.RejectionReason,

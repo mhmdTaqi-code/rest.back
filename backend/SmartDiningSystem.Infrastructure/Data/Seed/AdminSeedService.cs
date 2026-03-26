@@ -14,7 +14,6 @@ public class AdminSeedService
         new(
             Guid.Parse("11111111-1111-1111-1111-111111111111"),
             "Baghdad Grill Owner",
-            "baghdad.grill.owner@smartdining.local",
             "baghdadgrillowner",
             "9647700000101",
             Guid.Parse("21111111-1111-1111-1111-111111111111"),
@@ -65,7 +64,6 @@ public class AdminSeedService
         new(
             Guid.Parse("11111111-1111-1111-1111-111111111112"),
             "Tigris Pizza Owner",
-            "tigris.pizza.owner@smartdining.local",
             "tigrispizzaowner",
             "9647700000102",
             Guid.Parse("21111111-1111-1111-1111-111111111112"),
@@ -116,7 +114,6 @@ public class AdminSeedService
         new(
             Guid.Parse("11111111-1111-1111-1111-111111111113"),
             "Sweet Bite Owner",
-            "sweet.bite.owner@smartdining.local",
             "sweetbiteowner",
             "9647700000103",
             Guid.Parse("21111111-1111-1111-1111-111111111113"),
@@ -190,8 +187,7 @@ public class AdminSeedService
         {
             existingAdmin = await _dbContext.UserAccounts
                 .FirstOrDefaultAsync(
-                    user => user.PhoneNumber == AdminAuthenticationService.DevelopmentAdminPhone ||
-                            user.Email == AdminAuthenticationService.DevelopmentAdminEmail,
+                    user => user.PhoneNumber == AdminAuthenticationService.DevelopmentAdminPhone,
                     cancellationToken);
         }
 
@@ -202,7 +198,6 @@ public class AdminSeedService
                 Id = AdminAuthenticationService.DevelopmentAdminId,
                 FullName = AdminAuthenticationService.DevelopmentAdminFullName,
                 PhoneNumber = AdminAuthenticationService.DevelopmentAdminPhone,
-                Email = AdminAuthenticationService.DevelopmentAdminEmail,
                 Username = AdminAuthenticationService.DevelopmentAdminPhone,
                 PasswordHash = "DEV_ADMIN_COOKIE_AUTH_ONLY",
                 Role = UserRole.Admin,
@@ -218,7 +213,6 @@ public class AdminSeedService
         {
             existingAdmin.FullName = AdminAuthenticationService.DevelopmentAdminFullName;
             existingAdmin.PhoneNumber = AdminAuthenticationService.DevelopmentAdminPhone;
-            existingAdmin.Email = AdminAuthenticationService.DevelopmentAdminEmail;
             existingAdmin.Username = AdminAuthenticationService.DevelopmentAdminPhone;
             existingAdmin.PasswordHash = "DEV_ADMIN_COOKIE_AUTH_ONLY";
             existingAdmin.Role = UserRole.Admin;
@@ -245,7 +239,6 @@ public class AdminSeedService
                 {
                     Id = ownerDefinition.OwnerId,
                     FullName = ownerDefinition.OwnerName,
-                    Email = ownerDefinition.OwnerEmail,
                     Username = ownerDefinition.OwnerUsername,
                     PhoneNumber = ownerDefinition.OwnerPhoneNumber,
                     PasswordHash = _passwordHashService.HashPassword("Owner123!"),
@@ -261,7 +254,6 @@ public class AdminSeedService
             else
             {
                 owner.FullName = ownerDefinition.OwnerName;
-                owner.Email = ownerDefinition.OwnerEmail;
                 owner.Username = ownerDefinition.OwnerUsername;
                 owner.PhoneNumber = ownerDefinition.OwnerPhoneNumber;
                 owner.Role = UserRole.RestaurantOwner;
@@ -448,7 +440,6 @@ public class AdminSeedService
     private sealed record SeedOwnerDefinition(
         Guid OwnerId,
         string OwnerName,
-        string OwnerEmail,
         string OwnerUsername,
         string OwnerPhoneNumber,
         Guid RestaurantId,

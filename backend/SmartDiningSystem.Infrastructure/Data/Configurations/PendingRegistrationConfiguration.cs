@@ -16,10 +16,6 @@ public class PendingRegistrationConfiguration : IEntityTypeConfiguration<Pending
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(pendingRegistration => pendingRegistration.Email)
-            .IsRequired()
-            .HasMaxLength(256);
-
         builder.Property(pendingRegistration => pendingRegistration.PhoneNumber)
             .IsRequired()
             .HasMaxLength(20);
@@ -52,9 +48,6 @@ public class PendingRegistrationConfiguration : IEntityTypeConfiguration<Pending
         builder.Property(pendingRegistration => pendingRegistration.CreatedAtUtc)
             .IsRequired()
             .HasConversion<UtcDateTimeConverter>();
-
-        builder.HasIndex(pendingRegistration => pendingRegistration.Email)
-            .IsUnique();
 
         builder.HasIndex(pendingRegistration => pendingRegistration.PhoneNumber)
             .IsUnique();

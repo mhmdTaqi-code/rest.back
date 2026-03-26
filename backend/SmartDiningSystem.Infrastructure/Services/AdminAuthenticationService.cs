@@ -17,7 +17,6 @@ public class AdminAuthenticationService : IAdminAuthenticationService
 {
     public static readonly Guid DevelopmentAdminId = Guid.Parse("00000000-0000-0000-0000-000000000012");
     public const string DevelopmentAdminPhone = "12";
-    public const string DevelopmentAdminEmail = "mainadmin12@local.dev";
     public const string DevelopmentAdminFullName = "Development Main Admin";
 
     private readonly AdminDevelopmentCredentialsOptions _credentialsOptions;
@@ -88,8 +87,7 @@ public class AdminAuthenticationService : IAdminAuthenticationService
             .AsNoTracking()
             .FirstOrDefaultAsync(
                 user => (user.Id == DevelopmentAdminId ||
-                         user.PhoneNumber == DevelopmentAdminPhone ||
-                         user.Email == DevelopmentAdminEmail) &&
+                         user.PhoneNumber == DevelopmentAdminPhone) &&
                         user.Role == UserRole.Admin &&
                         user.IsActive,
                 cancellationToken);

@@ -16,10 +16,6 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(user => user.Email)
-            .IsRequired()
-            .HasMaxLength(256);
-
         builder.Property(user => user.Username)
             .IsRequired()
             .HasMaxLength(100);
@@ -52,9 +48,6 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
             .IsRequired()
             .HasConversion<UtcDateTimeConverter>();
 
-        builder.HasIndex(user => user.Email)
-            .IsUnique();
-
         builder.HasIndex(user => user.Username)
             .IsUnique();
 
@@ -74,6 +67,11 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
         builder.HasMany(user => user.Orders)
             .WithOne(order => order.User)
             .HasForeignKey(order => order.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(user => user.RestaurantRatings)
+            .WithOne(rating => rating.User)
+            .HasForeignKey(rating => rating.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(user => user.LoginOtpCodes)

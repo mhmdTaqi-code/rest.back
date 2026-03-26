@@ -17,10 +17,6 @@ public class AdminAccountFormViewModel : IValidatableObject
     [Display(Name = "Phone Number")]
     public string PhoneNumber { get; set; } = string.Empty;
 
-    [EmailAddress]
-    [StringLength(256)]
-    public string? Email { get; set; }
-
     [Required]
     [StringLength(50)]
     public string Username { get; set; } = string.Empty;

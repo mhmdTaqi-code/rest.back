@@ -8,7 +8,6 @@ public class AdminRestaurantDetailsDto
     public string RestaurantAddress { get; set; } = string.Empty;
     public string RestaurantPhoneNumber { get; set; } = string.Empty;
     public string OwnerName { get; set; } = string.Empty;
-    public string OwnerEmail { get; set; } = string.Empty;
     public string OwnerPhoneNumber { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }

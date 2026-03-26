@@ -109,6 +109,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdminDashboardService, AdminDashboardService>();
         services.AddScoped<IAdminRestaurantService, AdminRestaurantService>();
         services.AddScoped<IRestaurantQueryService, RestaurantQueryService>();
+        services.AddScoped<IRestaurantRatingService, RestaurantRatingService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IMenuItemService, MenuItemService>();
         services.AddScoped<IRestaurantTableManagementService, RestaurantTableManagementService>();
@@ -116,6 +117,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPublicTableMenuService, PublicTableMenuService>();
         services.AddScoped<ITableCartService, TableCartService>();
         services.AddScoped<ITableOrderService, TableOrderService>();
+        services.AddScoped<IOwnerOrderWorkflowService, OwnerOrderWorkflowService>();
+        services.AddScoped<IUserOrderTrackingService, UserOrderTrackingService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddHttpClient<IOtpService, IraqOtpService>((serviceProvider, client) =>
         {

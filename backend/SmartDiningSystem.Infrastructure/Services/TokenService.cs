@@ -39,12 +39,6 @@ public class TokenService : ITokenService
             claims.Add(new("phoneNumber", user.PhoneNumber));
         }
 
-        if (!string.IsNullOrWhiteSpace(user.Email))
-        {
-            claims.Add(new(JwtRegisteredClaimNames.Email, user.Email));
-            claims.Add(new(ClaimTypes.Email, user.Email));
-        }
-
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
@@ -67,7 +61,6 @@ public class TokenService : ITokenService
             {
                 Id = user.Id,
                 FullName = user.FullName,
-                Email = user.Email,
                 PhoneNumber = user.PhoneNumber,
                 Username = user.Username,
                 Role = user.Role.ToString()

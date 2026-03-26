@@ -60,7 +60,6 @@ public class AdminAccountService : IAdminAccountService
                 FullName = row.Account.FullName,
                 Username = row.Account.Username,
                 PhoneNumber = row.Account.PhoneNumber,
-                Email = row.Account.Email,
                 Role = row.Account.Role.ToString(),
                 IsActive = row.Account.IsActive,
                 IsPhoneVerified = row.Account.IsPhoneVerified,
@@ -110,7 +109,6 @@ public class AdminAccountService : IAdminAccountService
             FullName = account.Account.FullName,
             Username = account.Account.Username,
             PhoneNumber = account.Account.PhoneNumber,
-            Email = account.Account.Email,
             Role = account.Account.Role.ToString(),
             IsActive = account.Account.IsActive,
             IsPhoneVerified = account.Account.IsPhoneVerified,
@@ -164,7 +162,6 @@ public class AdminAccountService : IAdminAccountService
             FullName = account.FullName,
             Username = account.Username,
             PhoneNumber = account.PhoneNumber ?? string.Empty,
-            Email = account.Email,
             Role = account.Role.ToString(),
             IsActive = account.IsActive,
             IsPhoneVerified = account.IsPhoneVerified,
@@ -186,9 +183,6 @@ public class AdminAccountService : IAdminAccountService
             Id = Guid.NewGuid(),
             FullName = model.FullName.Trim(),
             PhoneNumber = model.PhoneNumber.Trim(),
-            Email = string.IsNullOrWhiteSpace(model.Email)
-                ? $"admin-managed-{Guid.NewGuid():N}@local.invalid"
-                : model.Email.Trim(),
             Username = NormalizeUsername(model.Username),
             PasswordHash = _passwordHashService.HashPassword(model.Password),
             Role = selectedRole,
@@ -229,9 +223,6 @@ public class AdminAccountService : IAdminAccountService
         var selectedRole = ParseVisibleRole(model.Role);
         account.FullName = model.FullName.Trim();
         account.PhoneNumber = model.PhoneNumber.Trim();
-        account.Email = string.IsNullOrWhiteSpace(model.Email)
-            ? account.Email
-            : model.Email.Trim();
         account.Username = NormalizeUsername(model.Username);
         account.Role = selectedRole;
         account.IsActive = model.IsActive;
@@ -502,7 +493,6 @@ public class AdminAccountService : IAdminAccountService
 
         var errors = new Dictionary<string, string[]>();
         var normalizedPhone = model.PhoneNumber.Trim();
-        var normalizedEmail = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
         var normalizedUsername = NormalizeUsername(model.Username);
         var normalizedRestaurantName = string.IsNullOrWhiteSpace(model.RestaurantName) ? null : model.RestaurantName.Trim();
         var normalizedRestaurantDescription = string.IsNullOrWhiteSpace(model.RestaurantDescription) ? null : model.RestaurantDescription.Trim();
@@ -537,19 +527,6 @@ public class AdminAccountService : IAdminAccountService
         if (phoneExists)
         {
             errors[nameof(model.PhoneNumber)] = ["Another account already uses this phone number."];
-        }
-
-        if (!string.IsNullOrWhiteSpace(normalizedEmail))
-        {
-            var emailExists = await _dbContext.UserAccounts
-                .AnyAsync(
-                    user => user.Email == normalizedEmail && user.Id != currentAccountId,
-                    cancellationToken);
-
-            if (emailExists)
-            {
-                errors[nameof(model.Email)] = ["Another account already uses this email address."];
-            }
         }
 
         var usernameExists = await _dbContext.UserAccounts

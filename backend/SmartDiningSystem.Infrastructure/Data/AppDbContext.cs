@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<TableCartItem> TableCartItems => Set<TableCartItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<RestaurantRating> RestaurantRatings => Set<RestaurantRating>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
 

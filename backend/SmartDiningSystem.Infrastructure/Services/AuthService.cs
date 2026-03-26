@@ -34,20 +34,17 @@ public class AuthService : IAuthService
         CancellationToken cancellationToken = default)
     {
         var normalizedPhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
-        var normalizedEmail = NormalizeEmail(request.Email);
         var normalizedUsername = NormalizeUsername(request.Username);
 
         var pendingRegistration = await GetOrCreatePendingRegistrationAsync(normalizedPhoneNumber, cancellationToken);
 
         await EnsureRegistrationIdentityIsAvailableAsync(
-            normalizedEmail,
             normalizedUsername,
             normalizedPhoneNumber,
             pendingRegistration.Id,
             cancellationToken);
 
         pendingRegistration.FullName = request.FullName.Trim();
-        pendingRegistration.Email = normalizedEmail;
         pendingRegistration.PhoneNumber = normalizedPhoneNumber;
         pendingRegistration.Username = normalizedUsername;
         pendingRegistration.PasswordHash = _passwordHashService.HashPassword(request.Password);
@@ -68,21 +65,18 @@ public class AuthService : IAuthService
         CancellationToken cancellationToken = default)
     {
         var normalizedOwnerPhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
-        var normalizedEmail = NormalizeEmail(request.Email);
         var normalizedUsername = NormalizeUsername(request.Username);
         var normalizedRestaurantPhoneNumber = NormalizePhoneNumber(request.RestaurantPhoneNumber);
 
         var pendingRegistration = await GetOrCreatePendingRegistrationAsync(normalizedOwnerPhoneNumber, cancellationToken);
 
         await EnsureRegistrationIdentityIsAvailableAsync(
-            normalizedEmail,
             normalizedUsername,
             normalizedOwnerPhoneNumber,
             pendingRegistration.Id,
             cancellationToken);
 
         pendingRegistration.FullName = request.FullName.Trim();
-        pendingRegistration.Email = normalizedEmail;
         pendingRegistration.PhoneNumber = normalizedOwnerPhoneNumber;
         pendingRegistration.Username = normalizedUsername;
         pendingRegistration.PasswordHash = _passwordHashService.HashPassword(request.Password);
@@ -187,7 +181,6 @@ public class AuthService : IAuthService
                 {
                     Id = user.Id,
                     FullName = user.FullName,
-                    Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
                     Username = user.Username,
                     Role = user.Role.ToString()
@@ -208,7 +201,6 @@ public class AuthService : IAuthService
         var pendingRegistration = otpCode.PendingRegistration;
 
         await EnsureFinalAccountIdentityIsAvailableAsync(
-            pendingRegistration.Email,
             pendingRegistration.Username,
             pendingRegistration.PhoneNumber,
             cancellationToken);
@@ -218,7 +210,6 @@ public class AuthService : IAuthService
         {
             Id = Guid.NewGuid(),
             FullName = pendingRegistration.FullName,
-            Email = pendingRegistration.Email,
             PhoneNumber = pendingRegistration.PhoneNumber,
             Username = pendingRegistration.Username,
             PasswordHash = pendingRegistration.PasswordHash,
@@ -252,23 +243,12 @@ public class AuthService : IAuthService
     }
 
     private async Task EnsureRegistrationIdentityIsAvailableAsync(
-        string email,
         string username,
         string phoneNumber,
         Guid currentPendingRegistrationId,
         CancellationToken cancellationToken)
     {
-        await EnsureFinalAccountIdentityIsAvailableAsync(email, username, phoneNumber, cancellationToken);
-
-        var pendingEmailExists = await _dbContext.PendingRegistrations
-            .AnyAsync(
-                registration => registration.Email == email && registration.Id != currentPendingRegistrationId,
-                cancellationToken);
-
-        if (pendingEmailExists)
-        {
-            throw new AuthServiceException("A pending registration already uses this email.", StatusCodes.Status409Conflict);
-        }
+        await EnsureFinalAccountIdentityIsAvailableAsync(username, phoneNumber, cancellationToken);
 
         var pendingUsernameExists = await _dbContext.PendingRegistrations
             .AnyAsync(
@@ -292,19 +272,10 @@ public class AuthService : IAuthService
     }
 
     private async Task EnsureFinalAccountIdentityIsAvailableAsync(
-        string email,
         string username,
         string phoneNumber,
         CancellationToken cancellationToken)
     {
-        var emailExists = await _dbContext.UserAccounts
-            .AnyAsync(userAccount => userAccount.Email == email, cancellationToken);
-
-        if (emailExists)
-        {
-            throw new AuthServiceException("An account with this email already exists.", StatusCodes.Status409Conflict);
-        }
-
         var usernameExists = await _dbContext.UserAccounts
             .AnyAsync(userAccount => userAccount.Username == username, cancellationToken);
 
@@ -414,11 +385,6 @@ public class AuthService : IAuthService
         return normalizedPhoneNumber;
     }
 
-    private static string NormalizeEmail(string email)
-    {
-        return email.Trim().ToLowerInvariant();
-    }
-
     private static string NormalizeUsername(string username)
     {
         return username.Trim().ToLowerInvariant();
@@ -427,7 +393,6 @@ public class AuthService : IAuthService
     private static void EnsurePendingRegistrationEligibleForOtpResend(PendingRegistration pendingRegistration)
     {
         if (string.IsNullOrWhiteSpace(pendingRegistration.FullName)
-            || string.IsNullOrWhiteSpace(pendingRegistration.Email)
             || string.IsNullOrWhiteSpace(pendingRegistration.Username)
             || string.IsNullOrWhiteSpace(pendingRegistration.PasswordHash))
         {

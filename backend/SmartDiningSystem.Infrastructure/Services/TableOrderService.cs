@@ -118,7 +118,7 @@ public class TableOrderService : ITableOrderService
             UserId = userId,
             RestaurantId = table.RestaurantId,
             RestaurantTableId = table.RestaurantTableId,
-            Status = OrderStatus.Received,
+            Status = OrderStatus.OrderReceived,
             CreatedAtUtc = nowUtc,
             UpdatedAtUtc = nowUtc,
             OrderItems = validCartItems

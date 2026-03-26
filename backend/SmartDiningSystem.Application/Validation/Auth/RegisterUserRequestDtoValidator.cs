@@ -13,11 +13,6 @@ public class RegisterUserRequestDtoValidator : AbstractValidator<RegisterUserReq
             .MinimumLength(2)
             .MaximumLength(200);
 
-        RuleFor(request => request.Email)
-            .NotEmpty()
-            .EmailAddress()
-            .MaximumLength(256);
-
         RuleFor(request => request.PhoneNumber)
             .NotEmpty()
             .Must(phoneNumber => IraqiPhoneNumberHelper.TryNormalize(phoneNumber, out _))

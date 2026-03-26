@@ -6,7 +6,6 @@ public class UserAccount
 {
     public Guid Id { get; set; }
     public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
@@ -19,5 +18,6 @@ public class UserAccount
     public ICollection<Restaurant> OwnedRestaurants { get; set; } = new List<Restaurant>();
     public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<RestaurantRating> RestaurantRatings { get; set; } = new List<RestaurantRating>();
     public ICollection<OtpCode> LoginOtpCodes { get; set; } = new List<OtpCode>();
 }
