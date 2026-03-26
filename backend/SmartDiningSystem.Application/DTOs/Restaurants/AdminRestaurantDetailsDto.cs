@@ -5,6 +5,7 @@ public class AdminRestaurantDetailsDto
     public Guid Id { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
     public string? RestaurantDescription { get; set; }
+    public string? ImageUrl { get; set; }
     public string RestaurantAddress { get; set; } = string.Empty;
     public string RestaurantPhoneNumber { get; set; } = string.Empty;
     public string OwnerName { get; set; } = string.Empty;

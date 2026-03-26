@@ -32,6 +32,9 @@ public class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
         builder.Property(restaurant => restaurant.Description)
             .HasMaxLength(1000);
 
+        builder.Property(restaurant => restaurant.ImageUrl)
+            .HasMaxLength(1000);
+
         builder.Property(restaurant => restaurant.Address)
             .IsRequired()
             .HasMaxLength(500);

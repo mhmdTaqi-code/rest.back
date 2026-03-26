@@ -15,10 +15,14 @@ namespace SmartDiningSystem.Api.Controllers;
 public class OwnerRestaurantsController : ControllerBase
 {
     private readonly IRestaurantQueryService _restaurantQueryService;
+    private readonly IOwnerRestaurantProfileService _ownerRestaurantProfileService;
 
-    public OwnerRestaurantsController(IRestaurantQueryService restaurantQueryService)
+    public OwnerRestaurantsController(
+        IRestaurantQueryService restaurantQueryService,
+        IOwnerRestaurantProfileService ownerRestaurantProfileService)
     {
         _restaurantQueryService = restaurantQueryService;
+        _ownerRestaurantProfileService = ownerRestaurantProfileService;
     }
 
     [HttpGet("me")]
@@ -46,6 +50,43 @@ public class OwnerRestaurantsController : ControllerBase
             });
         }
         catch (AuthServiceException exception)
+        {
+            return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+            {
+                Message = exception.Message,
+                Errors = exception.Errors,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
+    [HttpPut("me/image")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<OwnerRestaurantStatusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<OwnerRestaurantStatusDto>>> UpdateMyRestaurantImage(
+        [FromBody] UpdateRestaurantImageRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue("userId"), out var ownerId))
+        {
+            return Unauthorized(new ApiErrorResponseDto
+            {
+                Message = "Unauthorized owner context.",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+
+        try
+        {
+            var result = await _ownerRestaurantProfileService.UpdateRestaurantImageAsync(ownerId, request, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<OwnerRestaurantStatusDto>
+            {
+                Message = "Restaurant image updated successfully.",
+                Data = result
+            });
+        }
+        catch (OwnerRestaurantProfileServiceException exception)
         {
             return StatusCode(exception.StatusCode, new ApiErrorResponseDto
             {

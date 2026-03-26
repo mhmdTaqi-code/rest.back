@@ -28,6 +28,7 @@ public class RestaurantQueryService : IRestaurantQueryService
                 Id = restaurant.Id,
                 Name = restaurant.Name,
                 Description = restaurant.Description,
+                ImageUrl = restaurant.ImageUrl,
                 Address = restaurant.Address,
                 ContactPhone = restaurant.ContactPhone
             })
@@ -44,6 +45,7 @@ public class RestaurantQueryService : IRestaurantQueryService
             {
                 RestaurantId = entity.Id,
                 RestaurantName = entity.Name,
+                ImageUrl = entity.ImageUrl,
                 ApprovalStatus = entity.ApprovalStatus.ToString(),
                 RejectionReason = entity.RejectionReason,
                 CreatedAtUtc = entity.CreatedAtUtc,

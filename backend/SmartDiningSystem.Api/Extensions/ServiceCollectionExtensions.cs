@@ -109,6 +109,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAdminDashboardService, AdminDashboardService>();
         services.AddScoped<IAdminRestaurantService, AdminRestaurantService>();
         services.AddScoped<IRestaurantQueryService, RestaurantQueryService>();
+        services.AddScoped<IOwnerRestaurantProfileService, OwnerRestaurantProfileService>();
+        services.AddScoped<IRestaurantRecommendationService, RestaurantRecommendationService>();
         services.AddScoped<IRestaurantRatingService, RestaurantRatingService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IMenuItemService, MenuItemService>();

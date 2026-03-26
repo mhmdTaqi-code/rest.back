@@ -122,6 +122,7 @@ public class AdminRestaurantService : IAdminRestaurantService
             Id = entity.Id,
             RestaurantName = entity.Name,
             RestaurantDescription = entity.Description,
+            ImageUrl = entity.ImageUrl,
             RestaurantAddress = entity.Address,
             RestaurantPhoneNumber = entity.ContactPhone,
             OwnerName = entity.Owner!.FullName,

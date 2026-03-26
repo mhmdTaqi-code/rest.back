@@ -339,6 +339,10 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
