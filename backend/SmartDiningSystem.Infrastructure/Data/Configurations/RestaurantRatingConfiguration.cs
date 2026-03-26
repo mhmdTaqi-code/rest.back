@@ -20,6 +20,9 @@ public class RestaurantRatingConfiguration : IEntityTypeConfiguration<Restaurant
         builder.Property(rating => rating.Stars)
             .IsRequired();
 
+        builder.Property(rating => rating.Comment)
+            .HasMaxLength(1000);
+
         builder.Property(rating => rating.CreatedAtUtc)
             .IsRequired()
             .HasConversion<UtcDateTimeConverter>();

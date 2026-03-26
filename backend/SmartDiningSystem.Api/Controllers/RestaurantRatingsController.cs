@@ -94,6 +94,7 @@ public class RestaurantRatingsController : ControllerBase
 
     [HttpGet("rating-summary")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<RestaurantRatingSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<RestaurantRatingSummaryDto>>> GetRatingSummary(
         Guid restaurantId,
@@ -111,6 +112,29 @@ public class RestaurantRatingsController : ControllerBase
         catch (RestaurantRatingServiceException exception)
         {
             return BuildErrorResponse<RestaurantRatingSummaryDto>(exception);
+        }
+    }
+
+    [HttpGet("ratings")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantRatingDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantRatingDto>>>> GetPublicRatings(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ratings = await _restaurantRatingService.GetPublicRatingsAsync(restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantRatingDto>>
+            {
+                Message = "Restaurant ratings loaded successfully.",
+                Data = ratings
+            });
+        }
+        catch (RestaurantRatingServiceException exception)
+        {
+            return BuildErrorResponse<IReadOnlyList<PublicRestaurantRatingDto>>(exception);
         }
     }
 

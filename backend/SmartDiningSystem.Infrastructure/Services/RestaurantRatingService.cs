@@ -48,16 +48,19 @@ public class RestaurantRatingService : IRestaurantRatingService
 
         var restaurantExists = await _dbContext.Restaurants
             .AsNoTracking()
-            .AnyAsync(restaurant => restaurant.Id == restaurantId, cancellationToken);
+            .AnyAsync(
+                restaurant => restaurant.Id == restaurantId
+                    && restaurant.ApprovalStatus == RestaurantApprovalStatus.Approved,
+                cancellationToken);
 
         if (!restaurantExists)
         {
             throw new RestaurantRatingServiceException(
-                "Restaurant was not found.",
+                "Restaurant was not found or is not available for rating.",
                 StatusCodes.Status404NotFound,
                 new Dictionary<string, string[]>
                 {
-                    ["restaurantId"] = ["The selected restaurant was not found."]
+                    ["restaurantId"] = ["The selected restaurant was not found or is not approved."]
                 });
         }
 
@@ -92,6 +95,7 @@ public class RestaurantRatingService : IRestaurantRatingService
                 RestaurantId = restaurantId,
                 UserId = userId,
                 Stars = request.Stars,
+                Comment = NormalizeComment(request.Comment),
                 CreatedAtUtc = nowUtc,
                 UpdatedAtUtc = nowUtc
             };
@@ -101,6 +105,7 @@ public class RestaurantRatingService : IRestaurantRatingService
         else
         {
             rating.Stars = request.Stars;
+            rating.Comment = NormalizeComment(request.Comment);
             rating.UpdatedAtUtc = nowUtc;
         }
 
@@ -136,16 +141,19 @@ public class RestaurantRatingService : IRestaurantRatingService
 
         var restaurantExists = await _dbContext.Restaurants
             .AsNoTracking()
-            .AnyAsync(restaurant => restaurant.Id == restaurantId, cancellationToken);
+            .AnyAsync(
+                restaurant => restaurant.Id == restaurantId
+                    && restaurant.ApprovalStatus == RestaurantApprovalStatus.Approved,
+                cancellationToken);
 
         if (!restaurantExists)
         {
             throw new RestaurantRatingServiceException(
-                "Restaurant was not found.",
+                "Restaurant was not found or is not available for rating.",
                 StatusCodes.Status404NotFound,
                 new Dictionary<string, string[]>
                 {
-                    ["restaurantId"] = ["The selected restaurant was not found."]
+                    ["restaurantId"] = ["The selected restaurant was not found or is not approved."]
                 });
         }
 
@@ -169,16 +177,19 @@ public class RestaurantRatingService : IRestaurantRatingService
 
         var restaurantExists = await _dbContext.Restaurants
             .AsNoTracking()
-            .AnyAsync(restaurant => restaurant.Id == restaurantId, cancellationToken);
+            .AnyAsync(
+                restaurant => restaurant.Id == restaurantId
+                    && restaurant.ApprovalStatus == RestaurantApprovalStatus.Approved,
+                cancellationToken);
 
         if (!restaurantExists)
         {
             throw new RestaurantRatingServiceException(
-                "Restaurant was not found.",
+                "Restaurant was not found or is not publicly available.",
                 StatusCodes.Status404NotFound,
                 new Dictionary<string, string[]>
                 {
-                    ["restaurantId"] = ["The selected restaurant was not found."]
+                    ["restaurantId"] = ["The selected restaurant was not found or is not approved."]
                 });
         }
 
@@ -202,16 +213,103 @@ public class RestaurantRatingService : IRestaurantRatingService
         };
     }
 
+    public async Task<IReadOnlyList<PublicRestaurantRatingDto>> GetPublicRatingsAsync(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        if (restaurantId == Guid.Empty)
+        {
+            throw BuildValidationException("restaurantId", "Restaurant id is required.");
+        }
+
+        var restaurantExists = await _dbContext.Restaurants
+            .AsNoTracking()
+            .AnyAsync(
+                restaurant => restaurant.Id == restaurantId
+                    && restaurant.ApprovalStatus == RestaurantApprovalStatus.Approved,
+                cancellationToken);
+
+        if (!restaurantExists)
+        {
+            throw new RestaurantRatingServiceException(
+                "Restaurant was not found or is not publicly available.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    ["restaurantId"] = ["The selected restaurant was not found or is not approved."]
+                });
+        }
+
+        return await _dbContext.RestaurantRatings
+            .AsNoTracking()
+            .Where(rating => rating.RestaurantId == restaurantId)
+            .Include(rating => rating.User)
+            .OrderByDescending(rating => rating.UpdatedAtUtc)
+            .ThenByDescending(rating => rating.CreatedAtUtc)
+            .Select(rating => new PublicRestaurantRatingDto
+            {
+                RatingId = rating.Id,
+                RestaurantId = rating.RestaurantId,
+                User = new PublicRatingUserDto
+                {
+                    DisplayName = BuildPublicDisplayName(rating.User != null ? rating.User.FullName : string.Empty)
+                },
+                Stars = rating.Stars,
+                Comment = rating.Comment,
+                CreatedAtUtc = rating.CreatedAtUtc,
+                UpdatedAtUtc = rating.UpdatedAtUtc
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     private static RestaurantRatingDto MapRating(RestaurantRating rating)
     {
         return new RestaurantRatingDto
         {
+            RatingId = rating.Id,
             RestaurantId = rating.RestaurantId,
             UserId = rating.UserId,
             Stars = rating.Stars,
+            Comment = rating.Comment,
             CreatedAtUtc = rating.CreatedAtUtc,
             UpdatedAtUtc = rating.UpdatedAtUtc
         };
+    }
+
+    private static string? NormalizeComment(string? comment)
+    {
+        if (string.IsNullOrWhiteSpace(comment))
+        {
+            return null;
+        }
+
+        return comment.Trim();
+    }
+
+    private static string BuildPublicDisplayName(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return "Anonymous";
+        }
+
+        var parts = fullName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length == 0)
+        {
+            return "Anonymous";
+        }
+
+        if (parts.Length == 1)
+        {
+            var firstName = parts[0];
+            return firstName.Length == 1
+                ? $"{firstName}."
+                : $"{firstName[0]}{new string('*', Math.Min(firstName.Length - 1, 2))}";
+        }
+
+        return $"{parts[0]} {parts[^1][0]}.";
     }
 
     private static RestaurantRatingServiceException BuildValidationException(string key, string message)

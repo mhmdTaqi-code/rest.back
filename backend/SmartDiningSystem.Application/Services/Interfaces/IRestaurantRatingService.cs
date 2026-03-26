@@ -18,4 +18,8 @@ public interface IRestaurantRatingService
     Task<RestaurantRatingSummaryDto> GetRatingSummaryAsync(
         Guid restaurantId,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<PublicRestaurantRatingDto>> GetPublicRatingsAsync(
+        Guid restaurantId,
+        CancellationToken cancellationToken);
 }
