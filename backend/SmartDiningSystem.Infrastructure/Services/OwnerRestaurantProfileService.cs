@@ -42,6 +42,45 @@ public class OwnerRestaurantProfileService : IOwnerRestaurantProfileService
             RestaurantId = restaurant.Id,
             RestaurantName = restaurant.Name,
             ImageUrl = restaurant.ImageUrl,
+            Latitude = restaurant.Latitude,
+            Longitude = restaurant.Longitude,
+            ApprovalStatus = restaurant.ApprovalStatus.ToString(),
+            RejectionReason = restaurant.RejectionReason,
+            CreatedAtUtc = restaurant.CreatedAtUtc,
+            ApprovedAtUtc = restaurant.ApprovedAtUtc,
+            RejectedAtUtc = restaurant.RejectedAtUtc
+        };
+    }
+
+    public async Task<OwnerRestaurantStatusDto> UpdateRestaurantLocationAsync(
+        Guid ownerId,
+        UpdateRestaurantLocationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var restaurant = await _dbContext.Restaurants
+            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
+
+        if (restaurant is null)
+        {
+            throw new OwnerRestaurantProfileServiceException(
+                "Restaurant was not found for this owner.",
+                StatusCodes.Status404NotFound);
+        }
+
+        restaurant.Latitude = request.Latitude;
+        restaurant.Longitude = request.Longitude;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OwnerRestaurantStatusDto
+        {
+            RestaurantId = restaurant.Id,
+            RestaurantName = restaurant.Name,
+            ImageUrl = restaurant.ImageUrl,
+            Latitude = restaurant.Latitude,
+            Longitude = restaurant.Longitude,
             ApprovalStatus = restaurant.ApprovalStatus.ToString(),
             RejectionReason = restaurant.RejectionReason,
             CreatedAtUtc = restaurant.CreatedAtUtc,

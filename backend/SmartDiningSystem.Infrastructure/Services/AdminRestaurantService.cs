@@ -123,6 +123,8 @@ public class AdminRestaurantService : IAdminRestaurantService
             RestaurantName = entity.Name,
             RestaurantDescription = entity.Description,
             ImageUrl = entity.ImageUrl,
+            Latitude = entity.Latitude,
+            Longitude = entity.Longitude,
             RestaurantAddress = entity.Address,
             RestaurantPhoneNumber = entity.ContactPhone,
             OwnerName = entity.Owner!.FullName,

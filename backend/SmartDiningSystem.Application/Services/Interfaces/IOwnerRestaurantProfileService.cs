@@ -8,4 +8,9 @@ public interface IOwnerRestaurantProfileService
         Guid ownerId,
         UpdateRestaurantImageRequestDto request,
         CancellationToken cancellationToken);
+
+    Task<OwnerRestaurantStatusDto> UpdateRestaurantLocationAsync(
+        Guid ownerId,
+        UpdateRestaurantLocationRequestDto request,
+        CancellationToken cancellationToken);
 }

@@ -132,6 +132,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
                     dto.Name,
                     dto.Description,
                     dto.ImageUrl,
+                    dto.Latitude,
+                    dto.Longitude,
                     dto.Address,
                     dto.ContactPhone,
                     dto.AverageRating,
@@ -165,6 +167,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
                 restaurant.Name,
                 restaurant.Description,
                 restaurant.ImageUrl,
+                restaurant.Latitude,
+                restaurant.Longitude,
                 restaurant.Address,
                 restaurant.ContactPhone
             })
@@ -232,6 +236,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
                     restaurant.Name,
                     restaurant.Description,
                     restaurant.ImageUrl,
+                    restaurant.Latitude,
+                    restaurant.Longitude,
                     restaurant.Address,
                     restaurant.ContactPhone,
                     averageRating,
@@ -322,6 +328,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
             Name = recommendation.Restaurant.Name,
             Description = recommendation.Restaurant.Description,
             ImageUrl = recommendation.Restaurant.ImageUrl,
+            Latitude = recommendation.Restaurant.Latitude,
+            Longitude = recommendation.Restaurant.Longitude,
             Address = recommendation.Restaurant.Address,
             ContactPhone = recommendation.Restaurant.ContactPhone,
             AverageRating = recommendation.Restaurant.AverageRating,
@@ -340,6 +348,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
             Name = restaurant.Name,
             Description = restaurant.Description,
             ImageUrl = restaurant.ImageUrl,
+            Latitude = restaurant.Latitude,
+            Longitude = restaurant.Longitude,
             Address = restaurant.Address,
             ContactPhone = restaurant.ContactPhone,
             AverageRating = restaurant.AverageRating,
@@ -355,6 +365,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
             string name,
             string? description,
             string? imageUrl,
+            double? latitude,
+            double? longitude,
             string address,
             string contactPhone,
             decimal averageRating,
@@ -367,6 +379,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
             Name = name;
             Description = description;
             ImageUrl = imageUrl;
+            Latitude = latitude;
+            Longitude = longitude;
             Address = address;
             ContactPhone = contactPhone;
             AverageRating = averageRating;
@@ -380,6 +394,8 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
         public string Name { get; }
         public string? Description { get; }
         public string? ImageUrl { get; }
+        public double? Latitude { get; }
+        public double? Longitude { get; }
         public string Address { get; }
         public string ContactPhone { get; }
         public decimal AverageRating { get; }

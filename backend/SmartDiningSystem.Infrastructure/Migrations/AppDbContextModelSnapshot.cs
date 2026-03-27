@@ -343,6 +343,12 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -367,6 +373,12 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.ToTable("Restaurants", null, t =>
                         {
                             t.HasCheckConstraint("CK_Restaurants_ApprovedAtUtc_OnlyWhenApproved", "\"ApprovalStatus\" = 'Approved' OR \"ApprovedAtUtc\" IS NULL");
+
+                            t.HasCheckConstraint("CK_Restaurants_Coordinates_Paired", "(\"Latitude\" IS NULL AND \"Longitude\" IS NULL) OR (\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Restaurants_Latitude_Range", "\"Latitude\" IS NULL OR (\"Latitude\" >= -90 AND \"Latitude\" <= 90)");
+
+                            t.HasCheckConstraint("CK_Restaurants_Longitude_Range", "\"Longitude\" IS NULL OR (\"Longitude\" >= -180 AND \"Longitude\" <= 180)");
 
                             t.HasCheckConstraint("CK_Restaurants_RejectedAtUtc_OnlyWhenRejected", "\"ApprovalStatus\" = 'Rejected' OR \"RejectedAtUtc\" IS NULL");
 

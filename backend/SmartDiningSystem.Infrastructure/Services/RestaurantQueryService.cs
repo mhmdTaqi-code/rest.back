@@ -29,6 +29,8 @@ public class RestaurantQueryService : IRestaurantQueryService
                 Name = restaurant.Name,
                 Description = restaurant.Description,
                 ImageUrl = restaurant.ImageUrl,
+                Latitude = restaurant.Latitude,
+                Longitude = restaurant.Longitude,
                 Address = restaurant.Address,
                 ContactPhone = restaurant.ContactPhone
             })
@@ -46,6 +48,8 @@ public class RestaurantQueryService : IRestaurantQueryService
                 RestaurantId = entity.Id,
                 RestaurantName = entity.Name,
                 ImageUrl = entity.ImageUrl,
+                Latitude = entity.Latitude,
+                Longitude = entity.Longitude,
                 ApprovalStatus = entity.ApprovalStatus.ToString(),
                 RejectionReason = entity.RejectionReason,
                 CreatedAtUtc = entity.CreatedAtUtc,

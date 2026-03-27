@@ -5,6 +5,8 @@ public class OwnerRestaurantStatusDto
     public Guid RestaurantId { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public string ApprovalStatus { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }
     public DateTime CreatedAtUtc { get; set; }

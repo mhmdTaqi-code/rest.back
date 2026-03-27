@@ -21,6 +21,18 @@ public class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
             tableBuilder.HasCheckConstraint(
                 "CK_Restaurants_RejectedAtUtc_OnlyWhenRejected",
                 "\"ApprovalStatus\" = 'Rejected' OR \"RejectedAtUtc\" IS NULL");
+
+            tableBuilder.HasCheckConstraint(
+                "CK_Restaurants_Latitude_Range",
+                "\"Latitude\" IS NULL OR (\"Latitude\" >= -90 AND \"Latitude\" <= 90)");
+
+            tableBuilder.HasCheckConstraint(
+                "CK_Restaurants_Longitude_Range",
+                "\"Longitude\" IS NULL OR (\"Longitude\" >= -180 AND \"Longitude\" <= 180)");
+
+            tableBuilder.HasCheckConstraint(
+                "CK_Restaurants_Coordinates_Paired",
+                "(\"Latitude\" IS NULL AND \"Longitude\" IS NULL) OR (\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL)");
         });
 
         builder.HasKey(restaurant => restaurant.Id);
@@ -34,6 +46,12 @@ public class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
 
         builder.Property(restaurant => restaurant.ImageUrl)
             .HasMaxLength(1000);
+
+        builder.Property(restaurant => restaurant.Latitude)
+            .HasColumnType("double precision");
+
+        builder.Property(restaurant => restaurant.Longitude)
+            .HasColumnType("double precision");
 
         builder.Property(restaurant => restaurant.Address)
             .IsRequired()

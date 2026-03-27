@@ -96,4 +96,41 @@ public class OwnerRestaurantsController : ControllerBase
             });
         }
     }
+
+    [HttpPut("me/location")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<OwnerRestaurantStatusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<OwnerRestaurantStatusDto>>> UpdateMyRestaurantLocation(
+        [FromBody] UpdateRestaurantLocationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirstValue("userId"), out var ownerId))
+        {
+            return Unauthorized(new ApiErrorResponseDto
+            {
+                Message = "Unauthorized owner context.",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+
+        try
+        {
+            var result = await _ownerRestaurantProfileService.UpdateRestaurantLocationAsync(ownerId, request, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<OwnerRestaurantStatusDto>
+            {
+                Message = "Restaurant location updated successfully.",
+                Data = result
+            });
+        }
+        catch (OwnerRestaurantProfileServiceException exception)
+        {
+            return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+            {
+                Message = exception.Message,
+                Errors = exception.Errors,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
 }

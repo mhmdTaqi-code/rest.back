@@ -6,6 +6,8 @@ public class AdminRestaurantDetailsDto
     public string RestaurantName { get; set; } = string.Empty;
     public string? RestaurantDescription { get; set; }
     public string? ImageUrl { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public string RestaurantAddress { get; set; } = string.Empty;
     public string RestaurantPhoneNumber { get; set; } = string.Empty;
     public string OwnerName { get; set; } = string.Empty;
