@@ -190,7 +190,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
             .Select(group => new
             {
                 RestaurantId = group.Key,
-                AverageRating = decimal.Round(group.Sum(rating => rating.Stars) / (decimal)group.Count(), 2),
+                AverageRating = Math.Round(group.Average(rating => (double)rating.Stars), 2),
                 TotalRatingsCount = group.Count()
             })
             .ToDictionaryAsync(
@@ -223,7 +223,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
         return restaurants
             .Select(restaurant =>
             {
-                var averageRating = 0m;
+                var averageRating = 0d;
                 var totalRatingsCount = 0;
                 if (ratingAggregates.TryGetValue(restaurant.Id, out var ratingAggregate))
                 {
@@ -369,7 +369,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
             double? longitude,
             string address,
             string contactPhone,
-            decimal averageRating,
+            double averageRating,
             int totalRatingsCount,
             int totalOrderCount,
             List<Guid> categoryIds,
@@ -398,7 +398,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
         public double? Longitude { get; }
         public string Address { get; }
         public string ContactPhone { get; }
-        public decimal AverageRating { get; }
+        public double AverageRating { get; }
         public int TotalRatingsCount { get; }
         public int TotalOrderCount { get; }
         public List<Guid> CategoryIds { get; }

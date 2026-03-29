@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<RestaurantRating> RestaurantRatings => Set<RestaurantRating>();
+    public DbSet<TableReservation> TableReservations => Set<TableReservation>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
 

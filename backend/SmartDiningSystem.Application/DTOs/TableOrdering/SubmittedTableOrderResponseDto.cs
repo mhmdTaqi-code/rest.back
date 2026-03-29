@@ -6,6 +6,8 @@ public class SubmittedTableOrderResponseDto
     public Guid UserId { get; set; }
     public Guid RestaurantId { get; set; }
     public string RestaurantName { get; set; } = string.Empty;
+    public double AverageRating { get; set; }
+    public int TotalRatingsCount { get; set; }
     public Guid RestaurantTableId { get; set; }
     public int TableNumber { get; set; }
     public string TableToken { get; set; } = string.Empty;

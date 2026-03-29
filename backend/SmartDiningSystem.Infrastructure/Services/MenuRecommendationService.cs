@@ -175,22 +175,39 @@ public class MenuRecommendationService : IMenuRecommendationService
             .Select(group => new
             {
                 RestaurantId = group.Key,
-                AverageRating = decimal.Round(group.Sum(rating => rating.Stars) / (decimal)group.Count(), 2)
+                AverageRating = Math.Round(group.Average(rating => (double)rating.Stars), 2),
+                TotalRatingsCount = group.Count()
             })
-            .ToDictionaryAsync(item => item.RestaurantId, item => item.AverageRating, cancellationToken);
+            .ToDictionaryAsync(
+                item => item.RestaurantId,
+                item => new { item.AverageRating, item.TotalRatingsCount },
+                cancellationToken);
 
         return items
-            .Select(item => new MenuItemRecommendationCandidate(
-                item.RestaurantId,
-                item.RestaurantName,
-                item.MenuCategoryId,
-                item.MenuCategoryName,
-                item.Id,
-                item.Name,
-                item.Description,
-                item.Price,
-                item.ImageUrl,
-                ratingAverages.TryGetValue(item.RestaurantId, out var averageRating) ? averageRating : 0m))
+            .Select(item =>
+            {
+                var averageRating = 0d;
+                var totalRatingsCount = 0;
+
+                if (ratingAverages.TryGetValue(item.RestaurantId, out var ratingAggregate))
+                {
+                    averageRating = ratingAggregate.AverageRating;
+                    totalRatingsCount = ratingAggregate.TotalRatingsCount;
+                }
+
+                return new MenuItemRecommendationCandidate(
+                    item.RestaurantId,
+                    item.RestaurantName,
+                    averageRating,
+                    totalRatingsCount,
+                    item.MenuCategoryId,
+                    item.MenuCategoryName,
+                    item.Id,
+                    item.Name,
+                    item.Description,
+                    item.Price,
+                    item.ImageUrl);
+            })
             .ToList();
     }
 
@@ -208,6 +225,8 @@ public class MenuRecommendationService : IMenuRecommendationService
             {
                 RestaurantId = candidate.RestaurantId,
                 RestaurantName = candidate.RestaurantName,
+                AverageRating = candidate.AverageRating,
+                TotalRatingsCount = candidate.TotalRatingsCount,
                 MenuCategoryId = candidate.MenuCategoryId,
                 MenuCategoryName = candidate.MenuCategoryName,
                 MenuItemId = candidate.MenuItemId,
@@ -215,7 +234,6 @@ public class MenuRecommendationService : IMenuRecommendationService
                 Description = candidate.Description,
                 Price = candidate.Price,
                 ImageUrl = candidate.ImageUrl,
-                AverageRating = candidate.AverageRating,
                 RecommendationReason = "Recommended for you"
             })
             .ToList();
@@ -247,6 +265,8 @@ public class MenuRecommendationService : IMenuRecommendationService
         {
             RestaurantId = recommendation.Candidate.RestaurantId,
             RestaurantName = recommendation.Candidate.RestaurantName,
+            AverageRating = recommendation.Candidate.AverageRating,
+            TotalRatingsCount = recommendation.Candidate.TotalRatingsCount,
             MenuCategoryId = recommendation.Candidate.MenuCategoryId,
             MenuCategoryName = recommendation.Candidate.MenuCategoryName,
             MenuItemId = recommendation.Candidate.MenuItemId,
@@ -254,7 +274,6 @@ public class MenuRecommendationService : IMenuRecommendationService
             Description = recommendation.Candidate.Description,
             Price = recommendation.Candidate.Price,
             ImageUrl = recommendation.Candidate.ImageUrl,
-            AverageRating = recommendation.Candidate.AverageRating,
             RecommendationReason = recommendation.Reason
         };
     }
@@ -262,14 +281,15 @@ public class MenuRecommendationService : IMenuRecommendationService
     private sealed record MenuItemRecommendationCandidate(
         Guid RestaurantId,
         string RestaurantName,
+        double AverageRating,
+        int TotalRatingsCount,
         Guid MenuCategoryId,
         string MenuCategoryName,
         Guid MenuItemId,
         string Name,
         string? Description,
         decimal Price,
-        string ImageUrl,
-        decimal AverageRating);
+        string ImageUrl);
 
     private sealed record RankedMenuRecommendation(
         MenuItemRecommendationCandidate Candidate,

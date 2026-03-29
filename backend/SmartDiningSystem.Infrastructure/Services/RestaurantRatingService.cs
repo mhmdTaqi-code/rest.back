@@ -82,6 +82,8 @@ public class RestaurantRatingService : IRestaurantRatingService
         }
 
         var rating = await _dbContext.RestaurantRatings
+            .Include(entity => entity.Restaurant)
+            .ThenInclude(restaurant => restaurant!.Ratings)
             .FirstOrDefaultAsync(
                 entity => entity.UserId == userId && entity.RestaurantId == restaurantId,
                 cancellationToken);
@@ -110,6 +112,15 @@ public class RestaurantRatingService : IRestaurantRatingService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (rating.Restaurant is null)
+        {
+            await _dbContext.Entry(rating)
+                .Reference(entity => entity.Restaurant)
+                .Query()
+                .Include(restaurant => restaurant.Ratings)
+                .LoadAsync(cancellationToken);
+        }
 
         return MapRating(rating);
     }
@@ -159,6 +170,8 @@ public class RestaurantRatingService : IRestaurantRatingService
 
         var rating = await _dbContext.RestaurantRatings
             .AsNoTracking()
+            .Include(entity => entity.Restaurant)
+            .ThenInclude(restaurant => restaurant!.Ratings)
             .FirstOrDefaultAsync(
                 entity => entity.UserId == userId && entity.RestaurantId == restaurantId,
                 cancellationToken);
@@ -200,7 +213,7 @@ public class RestaurantRatingService : IRestaurantRatingService
             .Select(group => new RestaurantRatingSummaryDto
             {
                 RestaurantId = group.Key,
-                AverageRating = decimal.Round(group.Average(rating => (decimal)rating.Stars), 2),
+                AverageRating = Math.Round(group.Average(rating => (double)rating.Stars), 2),
                 TotalRatingsCount = group.Count()
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -208,7 +221,7 @@ public class RestaurantRatingService : IRestaurantRatingService
         return summary ?? new RestaurantRatingSummaryDto
         {
             RestaurantId = restaurantId,
-            AverageRating = 0m,
+            AverageRating = 0d,
             TotalRatingsCount = 0
         };
     }
@@ -250,6 +263,12 @@ public class RestaurantRatingService : IRestaurantRatingService
             {
                 RatingId = rating.Id,
                 RestaurantId = rating.RestaurantId,
+                AverageRating = rating.Restaurant != null
+                    ? Math.Round(rating.Restaurant.Ratings.Select(item => (double?)item.Stars).Average() ?? 0d, 2)
+                    : 0d,
+                TotalRatingsCount = rating.Restaurant != null
+                    ? rating.Restaurant.Ratings.Count()
+                    : 0,
                 User = new PublicRatingUserDto
                 {
                     DisplayName = BuildPublicDisplayName(rating.User != null ? rating.User.FullName : string.Empty)
@@ -264,10 +283,17 @@ public class RestaurantRatingService : IRestaurantRatingService
 
     private static RestaurantRatingDto MapRating(RestaurantRating rating)
     {
+        var averageRating = rating.Restaurant is null
+            ? 0d
+            : Math.Round(rating.Restaurant.Ratings.Select(item => (double)item.Stars).DefaultIfEmpty().Average(), 2);
+        var totalRatingsCount = rating.Restaurant?.Ratings.Count ?? 0;
+
         return new RestaurantRatingDto
         {
             RatingId = rating.Id,
             RestaurantId = rating.RestaurantId,
+            AverageRating = averageRating,
+            TotalRatingsCount = totalRatingsCount,
             UserId = rating.UserId,
             Stars = rating.Stars,
             Comment = rating.Comment,

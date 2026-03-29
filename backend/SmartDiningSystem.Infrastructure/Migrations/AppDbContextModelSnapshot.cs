@@ -532,6 +532,99 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CheckedInAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ConfirmedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DepositAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("DepositForfeitedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DepositPaidAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GuestCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("GracePeriodEndsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDepositPaid")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("NoShowMarkedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RestaurantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RestaurantTableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReservationEndUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReservationStartUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationEndUtc");
+
+                    b.HasIndex("ReservationStartUtc");
+
+                    b.HasIndex("RestaurantId");
+
+                    b.HasIndex("RestaurantTableId");
+
+                    b.HasIndex("RestaurantTableId", "Status", "ReservationStartUtc", "ReservationEndUtc");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TableReservations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TableReservations_DepositAmount_Minimum", "\"DepositAmount\" >= 5000");
+
+                            t.HasCheckConstraint("CK_TableReservations_EndAfterStart", "\"ReservationEndUtc\" > \"ReservationStartUtc\"");
+
+                            t.HasCheckConstraint("CK_TableReservations_GuestCount_Positive", "\"GuestCount\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.UserAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -767,6 +860,33 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Navigation("TableCart");
                 });
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableReservation", b =>
+                {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
+                        .WithMany("Reservations")
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.RestaurantTable", "RestaurantTable")
+                        .WithMany("Reservations")
+                        .HasForeignKey("RestaurantTableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.UserAccount", "User")
+                        .WithMany("TableReservations")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Restaurant");
+
+                    b.Navigation("RestaurantTable");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
                 {
                     b.Navigation("MenuItems");
@@ -799,6 +919,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
 
                     b.Navigation("Ratings");
 
+                    b.Navigation("Reservations");
+
                     b.Navigation("TableCarts");
 
                     b.Navigation("Tables");
@@ -807,6 +929,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.RestaurantTable", b =>
                 {
                     b.Navigation("Orders");
+
+                    b.Navigation("Reservations");
 
                     b.Navigation("TableCarts");
                 });
@@ -825,6 +949,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Navigation("OwnedRestaurants");
 
                     b.Navigation("RestaurantRatings");
+
+                    b.Navigation("TableReservations");
 
                     b.Navigation("TableCarts");
                 });

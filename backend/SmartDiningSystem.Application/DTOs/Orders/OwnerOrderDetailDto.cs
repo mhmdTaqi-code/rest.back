@@ -4,6 +4,8 @@ public class OwnerOrderDetailDto
 {
     public Guid OrderId { get; set; }
     public Guid RestaurantId { get; set; }
+    public double AverageRating { get; set; }
+    public int TotalRatingsCount { get; set; }
     public Guid TableId { get; set; }
     public int TableNumber { get; set; }
     public Guid UserId { get; set; }

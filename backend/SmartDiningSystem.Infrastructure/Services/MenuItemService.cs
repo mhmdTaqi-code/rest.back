@@ -132,6 +132,7 @@ public class MenuItemService : IMenuItemService
     private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
+            .Include(entity => entity.Ratings)
             .OrderBy(entity => entity.CreatedAtUtc)
             .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
 
@@ -218,6 +219,12 @@ public class MenuItemService : IMenuItemService
         {
             Id = item.Id,
             RestaurantId = item.RestaurantId,
+            AverageRating = item.Restaurant != null
+                ? Math.Round(item.Restaurant.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2)
+                : 0d,
+            TotalRatingsCount = item.Restaurant != null
+                ? item.Restaurant.Ratings.Count()
+                : 0,
             MenuCategoryId = item.MenuCategoryId ?? Guid.Empty,
             MenuCategoryName = item.MenuCategory != null ? item.MenuCategory.Name : string.Empty,
             Name = item.Name,

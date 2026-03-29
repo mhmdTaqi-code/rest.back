@@ -26,4 +26,5 @@ public class Restaurant
     public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<RestaurantRating> Ratings { get; set; } = new List<RestaurantRating>();
+    public ICollection<TableReservation> Reservations { get; set; } = new List<TableReservation>();
 }

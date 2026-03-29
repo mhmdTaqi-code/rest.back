@@ -3,6 +3,6 @@ namespace SmartDiningSystem.Application.DTOs.Restaurants;
 public class RestaurantRatingSummaryDto
 {
     public Guid RestaurantId { get; set; }
-    public decimal AverageRating { get; set; }
+    public double AverageRating { get; set; }
     public int TotalRatingsCount { get; set; }
 }

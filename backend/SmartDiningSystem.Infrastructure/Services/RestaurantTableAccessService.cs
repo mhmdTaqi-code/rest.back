@@ -35,6 +35,12 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
                 entity.IsActive,
                 entity.RestaurantId,
                 RestaurantName = entity.Restaurant != null ? entity.Restaurant.Name : null,
+                AverageRating = entity.Restaurant != null
+                    ? Math.Round(entity.Restaurant.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2)
+                    : 0d,
+                TotalRatingsCount = entity.Restaurant != null
+                    ? entity.Restaurant.Ratings.Count()
+                    : 0,
                 ApprovalStatus = entity.Restaurant != null
                     ? entity.Restaurant.ApprovalStatus
                     : (RestaurantApprovalStatus?)null
@@ -103,6 +109,8 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
         {
             RestaurantId = table.RestaurantId,
             RestaurantName = table.RestaurantName,
+            AverageRating = table.AverageRating,
+            TotalRatingsCount = table.TotalRatingsCount,
             RestaurantTableId = table.Id,
             TableNumber = table.TableNumber,
             TableDisplayName = $"Table {table.TableNumber}",

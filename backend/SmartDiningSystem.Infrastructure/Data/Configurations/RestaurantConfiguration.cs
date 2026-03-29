@@ -111,5 +111,10 @@ public class RestaurantConfiguration : IEntityTypeConfiguration<Restaurant>
             .WithOne(rating => rating.Restaurant)
             .HasForeignKey(rating => rating.RestaurantId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(restaurant => restaurant.Reservations)
+            .WithOne(reservation => reservation.Restaurant)
+            .HasForeignKey(reservation => reservation.RestaurantId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

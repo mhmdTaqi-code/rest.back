@@ -10,7 +10,7 @@ public class RecommendedRestaurantDto
     public double? Longitude { get; set; }
     public string Address { get; set; } = string.Empty;
     public string ContactPhone { get; set; } = string.Empty;
-    public decimal AverageRating { get; set; }
+    public double AverageRating { get; set; }
     public int TotalRatingsCount { get; set; }
     public string RecommendationReason { get; set; } = string.Empty;
 }

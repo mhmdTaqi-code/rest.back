@@ -27,14 +27,19 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
             .OrderBy(order => order.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
-        return orders.Select(MapActiveOrder).ToList();
+        var averageRating = CalculateAverageRating(restaurant);
+        var totalRatingsCount = restaurant.Ratings.Count;
+
+        return orders
+            .Select(order => MapActiveOrder(order, averageRating, totalRatingsCount))
+            .ToList();
     }
 
     public async Task<OwnerOrderDetailDto> GetOrderDetailsAsync(Guid ownerId, Guid orderId, CancellationToken cancellationToken)
     {
         var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
         var order = await GetOwnedOrderAsync(restaurant.Id, orderId, cancellationToken);
-        return MapOrderDetail(order);
+        return MapOrderDetail(order, CalculateAverageRating(restaurant), restaurant.Ratings.Count);
     }
 
     public async Task<OwnerOrderDetailDto> UpdateOrderStatusAsync(
@@ -58,7 +63,7 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return MapOrderDetail(order);
+        return MapOrderDetail(order, CalculateAverageRating(restaurant), restaurant.Ratings.Count);
     }
 
     private IQueryable<Order> LoadOwnedOrdersQuery(Guid restaurantId)
@@ -75,6 +80,7 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
     private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
+            .Include(entity => entity.Ratings)
             .OrderBy(entity => entity.CreatedAtUtc)
             .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
 
@@ -214,12 +220,14 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
         return status == OrderStatus.Received ? OrderStatus.OrderReceived : status;
     }
 
-    private static OwnerActiveOrderDto MapActiveOrder(Order order)
+    private static OwnerActiveOrderDto MapActiveOrder(Order order, double averageRating, int totalRatingsCount)
     {
         return new OwnerActiveOrderDto
         {
             OrderId = order.Id,
             RestaurantId = order.RestaurantId,
+            AverageRating = averageRating,
+            TotalRatingsCount = totalRatingsCount,
             TableId = order.RestaurantTableId,
             TableNumber = order.RestaurantTable?.TableNumber ?? 0,
             UserId = order.UserId,
@@ -231,12 +239,14 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
         };
     }
 
-    private static OwnerOrderDetailDto MapOrderDetail(Order order)
+    private static OwnerOrderDetailDto MapOrderDetail(Order order, double averageRating, int totalRatingsCount)
     {
         return new OwnerOrderDetailDto
         {
             OrderId = order.Id,
             RestaurantId = order.RestaurantId,
+            AverageRating = averageRating,
+            TotalRatingsCount = totalRatingsCount,
             TableId = order.RestaurantTableId,
             TableNumber = order.RestaurantTable?.TableNumber ?? 0,
             UserId = order.UserId,
@@ -248,6 +258,11 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
             UpdatedAtUtc = order.UpdatedAtUtc,
             Items = order.OrderItems.Select(MapItem).ToList()
         };
+    }
+
+    private static double CalculateAverageRating(Restaurant restaurant)
+    {
+        return Math.Round(restaurant.Ratings.Select(rating => (double)rating.Stars).DefaultIfEmpty().Average(), 2);
     }
 
     private static OwnerOrderItemDto MapItem(OrderItem item)

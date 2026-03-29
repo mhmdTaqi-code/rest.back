@@ -69,7 +69,7 @@ public class CategoryService : ICategoryService
         _dbContext.MenuCategories.Add(category);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return MapCategoryValue(category);
+        return MapCategoryValue(category, restaurant);
     }
 
     public async Task<MenuCategoryDto> UpdateCategoryAsync(
@@ -106,7 +106,7 @@ public class CategoryService : ICategoryService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return MapCategoryValue(category);
+        return MapCategoryValue(category, restaurant);
     }
 
     public async Task DeleteCategoryAsync(Guid ownerId, Guid categoryId, CancellationToken cancellationToken)
@@ -135,6 +135,7 @@ public class CategoryService : ICategoryService
     private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
+            .Include(entity => entity.Ratings)
             .OrderBy(entity => entity.CreatedAtUtc)
             .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
 
@@ -182,18 +183,26 @@ public class CategoryService : ICategoryService
         {
             Id = category.Id,
             RestaurantId = category.RestaurantId,
+            AverageRating = category.Restaurant != null
+                ? Math.Round(category.Restaurant.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2)
+                : 0d,
+            TotalRatingsCount = category.Restaurant != null
+                ? category.Restaurant.Ratings.Count()
+                : 0,
             Name = category.Name,
             Description = category.Description,
             DisplayOrder = category.DisplayOrder
         };
     }
 
-    private static MenuCategoryDto MapCategoryValue(MenuCategory category)
+    private static MenuCategoryDto MapCategoryValue(MenuCategory category, Restaurant restaurant)
     {
         return new MenuCategoryDto
         {
             Id = category.Id,
             RestaurantId = category.RestaurantId,
+            AverageRating = Math.Round(restaurant.Ratings.Select(rating => (double)rating.Stars).DefaultIfEmpty().Average(), 2),
+            TotalRatingsCount = restaurant.Ratings.Count,
             Name = category.Name,
             Description = category.Description,
             DisplayOrder = category.DisplayOrder

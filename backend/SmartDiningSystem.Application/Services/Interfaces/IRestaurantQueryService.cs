@@ -5,6 +5,8 @@ namespace SmartDiningSystem.Application.Services.Interfaces;
 public interface IRestaurantQueryService
 {
     Task<IReadOnlyList<PublicRestaurantSummaryDto>> GetPublicRestaurantsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<PublicRestaurantTableDto>> GetTablesByRestaurantIdAsync(Guid restaurantId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PublicRestaurantMenuItemDto>> GetMenuByRestaurantIdAsync(Guid restaurantId, CancellationToken cancellationToken);
 
     Task<OwnerRestaurantStatusDto> GetOwnerRestaurantStatusAsync(Guid ownerId, CancellationToken cancellationToken);
 }

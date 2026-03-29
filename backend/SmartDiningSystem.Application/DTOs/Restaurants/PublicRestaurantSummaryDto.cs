@@ -10,4 +10,6 @@ public class PublicRestaurantSummaryDto
     public double? Longitude { get; set; }
     public string Address { get; set; } = string.Empty;
     public string ContactPhone { get; set; } = string.Empty;
+    public double AverageRating { get; set; }
+    public int TotalRatingsCount { get; set; }
 }

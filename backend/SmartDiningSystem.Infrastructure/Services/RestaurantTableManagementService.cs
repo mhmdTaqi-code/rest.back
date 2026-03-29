@@ -28,7 +28,10 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
             .AsNoTracking()
             .Where(table => table.RestaurantId == restaurant.Id)
             .OrderBy(table => table.TableNumber)
-            .Select(MapTable(restaurant.Name))
+            .Select(MapTable(
+                restaurant.Name,
+                CalculateAverageRating(restaurant),
+                restaurant.Ratings.Count))
             .ToListAsync(cancellationToken);
     }
 
@@ -70,7 +73,11 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         _dbContext.RestaurantTables.Add(table);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return MapTableValue(table, restaurant.Name);
+        return MapTableValue(
+            table,
+            restaurant.Name,
+            CalculateAverageRating(restaurant),
+            restaurant.Ratings.Count);
     }
 
     public async Task<IReadOnlyList<RestaurantTableDto>> BulkCreateTablesAsync(
@@ -106,7 +113,11 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return createdTables
-            .Select(table => MapTableValue(table, restaurant.Name))
+            .Select(table => MapTableValue(
+                table,
+                restaurant.Name,
+                CalculateAverageRating(restaurant),
+                restaurant.Ratings.Count))
             .ToList();
     }
 
@@ -124,7 +135,11 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return MapTableValue(table, restaurant.Name);
+        return MapTableValue(
+            table,
+            restaurant.Name,
+            CalculateAverageRating(restaurant),
+            restaurant.Ratings.Count);
     }
 
     public async Task DeleteTableAsync(Guid ownerId, Guid tableId, CancellationToken cancellationToken)
@@ -157,6 +172,7 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
     private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
+            .Include(entity => entity.Ratings)
             .OrderBy(entity => entity.CreatedAtUtc)
             .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
 
@@ -214,13 +230,18 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         }
     }
 
-    private static System.Linq.Expressions.Expression<Func<RestaurantTable, RestaurantTableDto>> MapTable(string restaurantName)
+    private static System.Linq.Expressions.Expression<Func<RestaurantTable, RestaurantTableDto>> MapTable(
+        string restaurantName,
+        double averageRating,
+        int totalRatingsCount)
     {
         return table => new RestaurantTableDto
         {
             Id = table.Id,
             RestaurantId = table.RestaurantId,
             RestaurantName = restaurantName,
+            AverageRating = averageRating,
+            TotalRatingsCount = totalRatingsCount,
             TableNumber = table.TableNumber,
             TableToken = table.TableToken,
             IsActive = table.IsActive,
@@ -229,18 +250,29 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         };
     }
 
-    private static RestaurantTableDto MapTableValue(RestaurantTable table, string restaurantName)
+    private static RestaurantTableDto MapTableValue(
+        RestaurantTable table,
+        string restaurantName,
+        double averageRating,
+        int totalRatingsCount)
     {
         return new RestaurantTableDto
         {
             Id = table.Id,
             RestaurantId = table.RestaurantId,
             RestaurantName = restaurantName,
+            AverageRating = averageRating,
+            TotalRatingsCount = totalRatingsCount,
             TableNumber = table.TableNumber,
             TableToken = table.TableToken,
             IsActive = table.IsActive,
             CreatedAtUtc = table.CreatedAtUtc,
             UpdatedAtUtc = table.UpdatedAtUtc
         };
+    }
+
+    private static double CalculateAverageRating(Restaurant restaurant)
+    {
+        return Math.Round(restaurant.Ratings.Select(rating => (double)rating.Stars).DefaultIfEmpty().Average(), 2);
     }
 }

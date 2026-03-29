@@ -12,4 +12,6 @@ public class OwnerRestaurantStatusDto
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ApprovedAtUtc { get; set; }
     public DateTime? RejectedAtUtc { get; set; }
+    public double AverageRating { get; set; }
+    public int TotalRatingsCount { get; set; }
 }

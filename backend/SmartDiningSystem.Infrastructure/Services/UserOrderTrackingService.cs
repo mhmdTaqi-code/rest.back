@@ -33,9 +33,25 @@ public class UserOrderTrackingService : IUserOrderTrackingService
 
         var order = await _dbContext.Orders
             .AsNoTracking()
-            .Include(entity => entity.Restaurant)
-            .Include(entity => entity.RestaurantTable)
-            .FirstOrDefaultAsync(entity => entity.Id == orderId && entity.UserId == userId, cancellationToken);
+            .Where(entity => entity.Id == orderId && entity.UserId == userId)
+            .Select(entity => new UserOrderStatusDto
+            {
+                OrderId = entity.Id,
+                RestaurantId = entity.RestaurantId,
+                RestaurantName = entity.Restaurant != null ? entity.Restaurant.Name : string.Empty,
+                AverageRating = entity.Restaurant != null
+                    ? Math.Round(entity.Restaurant.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2)
+                    : 0d,
+                TotalRatingsCount = entity.Restaurant != null
+                    ? entity.Restaurant.Ratings.Count()
+                    : 0,
+                TableId = entity.RestaurantTableId,
+                TableNumber = entity.RestaurantTable != null ? entity.RestaurantTable.TableNumber : 0,
+                Status = ToApiStatus(entity.Status),
+                CreatedAtUtc = entity.CreatedAtUtc,
+                UpdatedAtUtc = entity.UpdatedAtUtc
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (order is null)
         {
@@ -48,17 +64,7 @@ public class UserOrderTrackingService : IUserOrderTrackingService
                 });
         }
 
-        return new UserOrderStatusDto
-        {
-            OrderId = order.Id,
-            RestaurantId = order.RestaurantId,
-            RestaurantName = order.Restaurant?.Name ?? string.Empty,
-            TableId = order.RestaurantTableId,
-            TableNumber = order.RestaurantTable?.TableNumber ?? 0,
-            Status = ToApiStatus(order.Status),
-            CreatedAtUtc = order.CreatedAtUtc,
-            UpdatedAtUtc = order.UpdatedAtUtc
-        };
+        return order;
     }
 
     private static string ToApiStatus(OrderStatus status)

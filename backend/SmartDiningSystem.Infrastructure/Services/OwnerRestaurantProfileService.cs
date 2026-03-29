@@ -37,19 +37,7 @@ public class OwnerRestaurantProfileService : IOwnerRestaurantProfileService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new OwnerRestaurantStatusDto
-        {
-            RestaurantId = restaurant.Id,
-            RestaurantName = restaurant.Name,
-            ImageUrl = restaurant.ImageUrl,
-            Latitude = restaurant.Latitude,
-            Longitude = restaurant.Longitude,
-            ApprovalStatus = restaurant.ApprovalStatus.ToString(),
-            RejectionReason = restaurant.RejectionReason,
-            CreatedAtUtc = restaurant.CreatedAtUtc,
-            ApprovedAtUtc = restaurant.ApprovedAtUtc,
-            RejectedAtUtc = restaurant.RejectedAtUtc
-        };
+        return await BuildOwnerRestaurantStatusDtoAsync(restaurant.Id, cancellationToken);
     }
 
     public async Task<OwnerRestaurantStatusDto> UpdateRestaurantLocationAsync(
@@ -74,19 +62,32 @@ public class OwnerRestaurantProfileService : IOwnerRestaurantProfileService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new OwnerRestaurantStatusDto
-        {
-            RestaurantId = restaurant.Id,
-            RestaurantName = restaurant.Name,
-            ImageUrl = restaurant.ImageUrl,
-            Latitude = restaurant.Latitude,
-            Longitude = restaurant.Longitude,
-            ApprovalStatus = restaurant.ApprovalStatus.ToString(),
-            RejectionReason = restaurant.RejectionReason,
-            CreatedAtUtc = restaurant.CreatedAtUtc,
-            ApprovedAtUtc = restaurant.ApprovedAtUtc,
-            RejectedAtUtc = restaurant.RejectedAtUtc
-        };
+        return await BuildOwnerRestaurantStatusDtoAsync(restaurant.Id, cancellationToken);
+    }
+
+    private async Task<OwnerRestaurantStatusDto> BuildOwnerRestaurantStatusDtoAsync(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.Restaurants
+            .AsNoTracking()
+            .Where(entity => entity.Id == restaurantId)
+            .Select(entity => new OwnerRestaurantStatusDto
+            {
+                RestaurantId = entity.Id,
+                RestaurantName = entity.Name,
+                ImageUrl = entity.ImageUrl,
+                Latitude = entity.Latitude,
+                Longitude = entity.Longitude,
+                ApprovalStatus = entity.ApprovalStatus.ToString(),
+                RejectionReason = entity.RejectionReason,
+                CreatedAtUtc = entity.CreatedAtUtc,
+                ApprovedAtUtc = entity.ApprovedAtUtc,
+                RejectedAtUtc = entity.RejectedAtUtc,
+                AverageRating = Math.Round(entity.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
+                TotalRatingsCount = entity.Ratings.Count()
+            })
+            .FirstAsync(cancellationToken);
     }
 
     private static string? NormalizeImageUrl(string? imageUrl)

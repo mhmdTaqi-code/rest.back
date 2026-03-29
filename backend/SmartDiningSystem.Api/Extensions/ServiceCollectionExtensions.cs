@@ -120,6 +120,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPublicTableMenuService, PublicTableMenuService>();
         services.AddScoped<ITableCartService, TableCartService>();
         services.AddScoped<ITableOrderService, TableOrderService>();
+        services.AddScoped<ITableReservationService, TableReservationService>();
         services.AddScoped<IOwnerOrderWorkflowService, OwnerOrderWorkflowService>();
         services.AddScoped<IUserOrderTrackingService, UserOrderTrackingService>();
         services.AddScoped<ITokenService, TokenService>();

@@ -149,6 +149,8 @@ public class TableOrderService : ITableOrderService
             UserId = order.UserId,
             RestaurantId = order.RestaurantId,
             RestaurantName = table.RestaurantName,
+            AverageRating = table.AverageRating,
+            TotalRatingsCount = table.TotalRatingsCount,
             RestaurantTableId = order.RestaurantTableId,
             TableNumber = table.TableNumber,
             TableToken = table.TableToken,

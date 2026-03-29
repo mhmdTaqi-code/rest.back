@@ -30,7 +30,9 @@ public class AdminRestaurantService : IAdminRestaurantService
                 RestaurantName = restaurant.Name,
                 OwnerName = restaurant.Owner!.FullName,
                 OwnerPhoneNumber = restaurant.Owner!.PhoneNumber,
-                CreatedAtUtc = restaurant.CreatedAtUtc
+                CreatedAtUtc = restaurant.CreatedAtUtc,
+                AverageRating = Math.Round(restaurant.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
+                TotalRatingsCount = restaurant.Ratings.Count()
             })
             .ToListAsync(cancellationToken);
     }
@@ -133,7 +135,9 @@ public class AdminRestaurantService : IAdminRestaurantService
             RejectionReason = entity.RejectionReason,
             CreatedAtUtc = entity.CreatedAtUtc,
             ApprovedAtUtc = entity.ApprovedAtUtc,
-            RejectedAtUtc = entity.RejectedAtUtc
+            RejectedAtUtc = entity.RejectedAtUtc,
+            AverageRating = Math.Round(entity.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
+            TotalRatingsCount = entity.Ratings.Count()
         };
     }
 }

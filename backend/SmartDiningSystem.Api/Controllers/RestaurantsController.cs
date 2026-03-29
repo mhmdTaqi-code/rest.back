@@ -37,6 +37,52 @@ public class RestaurantsController : ControllerBase
         });
     }
 
+    [HttpGet("{restaurantId:guid}/tables")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantTableDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantTableDto>>>> GetRestaurantTables(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var tables = await _restaurantQueryService.GetTablesByRestaurantIdAsync(restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantTableDto>>
+            {
+                Success = true,
+                Data = tables
+            });
+        }
+        catch (RestaurantQueryServiceException exception)
+        {
+            return BuildErrorResponse<IReadOnlyList<PublicRestaurantTableDto>>(exception);
+        }
+    }
+
+    [HttpGet("{restaurantId:guid}/menu")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>>> GetRestaurantMenu(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var menu = await _restaurantQueryService.GetMenuByRestaurantIdAsync(restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>
+            {
+                Success = true,
+                Data = menu
+            });
+        }
+        catch (RestaurantQueryServiceException exception)
+        {
+            return BuildErrorResponse<IReadOnlyList<PublicRestaurantMenuItemDto>>(exception);
+        }
+    }
+
     [HttpGet("recommendations")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<RecommendedRestaurantDto>>), StatusCodes.Status200OK)]
@@ -83,5 +129,15 @@ public class RestaurantsController : ControllerBase
             Message = "Unauthorized user context.",
             TraceId = HttpContext.TraceIdentifier
         };
+    }
+
+    private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(RestaurantQueryServiceException exception)
+    {
+        return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+        {
+            Message = exception.Message,
+            Errors = exception.Errors,
+            TraceId = HttpContext.TraceIdentifier
+        });
     }
 }

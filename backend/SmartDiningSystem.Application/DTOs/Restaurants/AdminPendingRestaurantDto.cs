@@ -7,4 +7,6 @@ public class AdminPendingRestaurantDto
     public string OwnerName { get; set; } = string.Empty;
     public string OwnerPhoneNumber { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }
+    public double AverageRating { get; set; }
+    public int TotalRatingsCount { get; set; }
 }
