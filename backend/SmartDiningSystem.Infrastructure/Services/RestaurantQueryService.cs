@@ -60,16 +60,63 @@ public class RestaurantQueryService : IRestaurantQueryService
 
     public async Task<IReadOnlyList<PublicRestaurantMenuItemDto>> GetMenuByRestaurantIdAsync(
         Guid restaurantId,
+        GetRestaurantMenuQueryDto query,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(query);
+
         await EnsureApprovedRestaurantExistsAsync(restaurantId, cancellationToken);
 
-        return await _dbContext.MenuItems
+        var normalizedCategoryName = NormalizeOptionalText(query.CategoryName);
+        var normalizedSearch = NormalizeOptionalText(query.Search);
+        var normalizedSortBy = NormalizeOptionalText(query.SortBy);
+
+        IQueryable<Domain.Entities.MenuItem> menuQuery = _dbContext.MenuItems
             .AsNoTracking()
-            .Where(item => item.RestaurantId == restaurantId && item.IsAvailable)
-            .OrderBy(item => item.MenuCategory != null ? item.MenuCategory.DisplayOrder : int.MaxValue)
-            .ThenBy(item => item.DisplayOrder)
-            .ThenBy(item => item.Name)
+            .Where(item => item.RestaurantId == restaurantId);
+
+        if (query.CategoryId.HasValue)
+        {
+            menuQuery = menuQuery.Where(item => item.MenuCategoryId == query.CategoryId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedCategoryName))
+        {
+            menuQuery = menuQuery.Where(item =>
+                item.MenuCategory != null &&
+                EF.Functions.ILike(item.MenuCategory.Name, normalizedCategoryName));
+        }
+
+        if (query.IsAvailable.HasValue)
+        {
+            menuQuery = menuQuery.Where(item => item.IsAvailable == query.IsAvailable.Value);
+        }
+        else
+        {
+            menuQuery = menuQuery.Where(item => item.IsAvailable);
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedSearch))
+        {
+            var pattern = $"%{normalizedSearch}%";
+            menuQuery = menuQuery.Where(item =>
+                EF.Functions.ILike(item.Name, pattern) ||
+                (item.Description != null && EF.Functions.ILike(item.Description, pattern)));
+        }
+
+        if (query.MinPrice.HasValue)
+        {
+            menuQuery = menuQuery.Where(item => item.Price >= query.MinPrice.Value);
+        }
+
+        if (query.MaxPrice.HasValue)
+        {
+            menuQuery = menuQuery.Where(item => item.Price <= query.MaxPrice.Value);
+        }
+
+        menuQuery = ApplyMenuSorting(menuQuery, normalizedSortBy);
+
+        return await menuQuery
             .Select(item => new PublicRestaurantMenuItemDto
             {
                 MenuItemId = item.Id,
@@ -123,6 +170,48 @@ public class RestaurantQueryService : IRestaurantQueryService
             {
                 [key] = [message]
             });
+    }
+
+    private static IQueryable<Domain.Entities.MenuItem> ApplyMenuSorting(
+        IQueryable<Domain.Entities.MenuItem> query,
+        string? sortBy)
+    {
+        return sortBy?.ToLowerInvariant() switch
+        {
+            "nameasc" => query
+                .OrderBy(item => item.Name)
+                .ThenBy(item => item.MenuCategory != null ? item.MenuCategory.DisplayOrder : int.MaxValue)
+                .ThenBy(item => item.DisplayOrder),
+            "namedesc" => query
+                .OrderByDescending(item => item.Name)
+                .ThenBy(item => item.MenuCategory != null ? item.MenuCategory.DisplayOrder : int.MaxValue)
+                .ThenBy(item => item.DisplayOrder),
+            "priceasc" => query
+                .OrderBy(item => item.Price)
+                .ThenBy(item => item.MenuCategory != null ? item.MenuCategory.DisplayOrder : int.MaxValue)
+                .ThenBy(item => item.DisplayOrder)
+                .ThenBy(item => item.Name),
+            "pricedesc" => query
+                .OrderByDescending(item => item.Price)
+                .ThenBy(item => item.MenuCategory != null ? item.MenuCategory.DisplayOrder : int.MaxValue)
+                .ThenBy(item => item.DisplayOrder)
+                .ThenBy(item => item.Name),
+            "newest" => query
+                .OrderByDescending(item => item.CreatedAtUtc)
+                .ThenBy(item => item.Name),
+            "oldest" => query
+                .OrderBy(item => item.CreatedAtUtc)
+                .ThenBy(item => item.Name),
+            _ => query
+                .OrderBy(item => item.MenuCategory != null ? item.MenuCategory.DisplayOrder : int.MaxValue)
+                .ThenBy(item => item.DisplayOrder)
+                .ThenBy(item => item.Name)
+        };
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private async Task EnsureApprovedRestaurantExistsAsync(Guid restaurantId, CancellationToken cancellationToken)

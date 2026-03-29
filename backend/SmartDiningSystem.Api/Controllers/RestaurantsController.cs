@@ -66,11 +66,12 @@ public class RestaurantsController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>>> GetRestaurantMenu(
         Guid restaurantId,
+        [FromQuery] GetRestaurantMenuQueryDto query,
         CancellationToken cancellationToken)
     {
         try
         {
-            var menu = await _restaurantQueryService.GetMenuByRestaurantIdAsync(restaurantId, cancellationToken);
+            var menu = await _restaurantQueryService.GetMenuByRestaurantIdAsync(restaurantId, query, cancellationToken);
             return Ok(new ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>
             {
                 Success = true,
