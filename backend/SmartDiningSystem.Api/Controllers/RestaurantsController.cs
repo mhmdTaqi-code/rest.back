@@ -83,6 +83,29 @@ public class RestaurantsController : ControllerBase
         }
     }
 
+    [HttpGet("{restaurantId:guid}/highlighted-items")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicHighlightedMenuItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<PublicHighlightedMenuItemDto>>>> GetHighlightedItems(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = await _restaurantQueryService.GetHighlightedItemsByRestaurantIdAsync(restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<IReadOnlyList<PublicHighlightedMenuItemDto>>
+            {
+                Success = true,
+                Data = items
+            });
+        }
+        catch (RestaurantQueryServiceException exception)
+        {
+            return BuildErrorResponse<IReadOnlyList<PublicHighlightedMenuItemDto>>(exception);
+        }
+    }
+
     [HttpGet("{restaurantId:guid}/menu")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]

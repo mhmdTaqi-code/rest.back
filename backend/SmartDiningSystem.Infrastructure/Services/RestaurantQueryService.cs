@@ -80,6 +80,35 @@ public class RestaurantQueryService : IRestaurantQueryService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PublicHighlightedMenuItemDto>> GetHighlightedItemsByRestaurantIdAsync(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureApprovedRestaurantExistsAsync(restaurantId, cancellationToken);
+
+        return await _dbContext.MenuItems
+            .AsNoTracking()
+            .Where(item =>
+                item.RestaurantId == restaurantId &&
+                item.IsHighlighted &&
+                item.IsAvailable &&
+                item.HighlightTag != null &&
+                (item.MenuCategory == null || item.MenuCategory.IsActive))
+            .OrderBy(item => item.DisplayOrder)
+            .ThenBy(item => item.Name)
+            .Select(item => new PublicHighlightedMenuItemDto
+            {
+                MenuItemId = item.Id,
+                Name = item.Name,
+                Description = item.Description,
+                Price = item.Price,
+                ImageUrl = string.IsNullOrWhiteSpace(item.ImageUrl) ? null : item.ImageUrl,
+                CategoryName = item.MenuCategory != null ? item.MenuCategory.Name : null,
+                HighlightTag = item.HighlightTag!
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<PublicRestaurantMenuItemDto>> GetMenuByRestaurantIdAsync(
         Guid restaurantId,
         GetRestaurantMenuQueryDto query,

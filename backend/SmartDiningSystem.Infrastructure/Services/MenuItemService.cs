@@ -82,6 +82,41 @@ public class MenuItemService : IMenuItemService
         return await GetMenuItemDtoAsync(menuItem.Id, restaurant.Id, cancellationToken);
     }
 
+    public async Task<MenuItemDto> SetMenuItemHighlightAsync(
+        Guid ownerId,
+        Guid menuItemId,
+        SetMenuItemHighlightRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
+
+        menuItem.IsHighlighted = true;
+        menuItem.HighlightTag = NormalizeHighlightTag(request.HighlightTag);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return await GetMenuItemDtoAsync(menuItem.Id, restaurant.Id, cancellationToken);
+    }
+
+    public async Task<MenuItemDto> RemoveMenuItemHighlightAsync(
+        Guid ownerId,
+        Guid menuItemId,
+        CancellationToken cancellationToken)
+    {
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
+
+        menuItem.IsHighlighted = false;
+        menuItem.HighlightTag = null;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return await GetMenuItemDtoAsync(menuItem.Id, restaurant.Id, cancellationToken);
+    }
+
     public async Task<MenuItemDto> ToggleAvailabilityAsync(
         Guid ownerId,
         Guid menuItemId,
@@ -231,9 +266,16 @@ public class MenuItemService : IMenuItemService
             Description = item.Description,
             Price = item.Price,
             ImageUrl = item.ImageUrl,
+            IsHighlighted = item.IsHighlighted,
+            HighlightTag = item.HighlightTag,
             IsAvailable = item.IsAvailable,
             DisplayOrder = item.DisplayOrder
         };
+    }
+
+    private static string NormalizeHighlightTag(string highlightTag)
+    {
+        return highlightTag.Trim();
     }
 
     private static string? NormalizeOptionalText(string? value)

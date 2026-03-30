@@ -32,6 +32,13 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
             .IsRequired()
             .HasMaxLength(1000);
 
+        builder.Property(menuItem => menuItem.IsHighlighted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(menuItem => menuItem.HighlightTag)
+            .HasMaxLength(50);
+
         builder.Property(menuItem => menuItem.IsAvailable)
             .IsRequired();
 

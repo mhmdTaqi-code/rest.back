@@ -102,6 +102,61 @@ public class OwnerMenuItemsController : ControllerBase
         }
     }
 
+    [HttpPut("{menuItemId:guid}/highlight")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<MenuItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiSuccessResponseDto<MenuItemDto>>> SetHighlight(
+        Guid menuItemId,
+        [FromBody] SetMenuItemHighlightRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var ownerId = GetOwnerId();
+        if (ownerId is null)
+        {
+            return Unauthorized(BuildUnauthorizedResponse());
+        }
+
+        try
+        {
+            var item = await _menuItemService.SetMenuItemHighlightAsync(ownerId.Value, menuItemId, request, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<MenuItemDto>
+            {
+                Message = "Menu item highlight updated successfully.",
+                Data = item
+            });
+        }
+        catch (MenuManagementServiceException exception)
+        {
+            return BuildErrorResponse<MenuItemDto>(exception);
+        }
+    }
+
+    [HttpDelete("{menuItemId:guid}/highlight")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<MenuItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiSuccessResponseDto<MenuItemDto>>> RemoveHighlight(
+        Guid menuItemId,
+        CancellationToken cancellationToken)
+    {
+        var ownerId = GetOwnerId();
+        if (ownerId is null)
+        {
+            return Unauthorized(BuildUnauthorizedResponse());
+        }
+
+        try
+        {
+            var item = await _menuItemService.RemoveMenuItemHighlightAsync(ownerId.Value, menuItemId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<MenuItemDto>
+            {
+                Message = "Menu item highlight removed successfully.",
+                Data = item
+            });
+        }
+        catch (MenuManagementServiceException exception)
+        {
+            return BuildErrorResponse<MenuItemDto>(exception);
+        }
+    }
+
     [HttpPatch("{menuItemId:guid}/availability")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<MenuItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiSuccessResponseDto<MenuItemDto>>> ToggleAvailability(
