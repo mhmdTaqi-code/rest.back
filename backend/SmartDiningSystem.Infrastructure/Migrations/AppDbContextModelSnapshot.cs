@@ -440,6 +440,10 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<Guid>("RestaurantId")
                         .HasColumnType("uuid");
 

@@ -64,6 +64,7 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
             Id = Guid.NewGuid(),
             RestaurantId = restaurant.Id,
             TableNumber = request.TableNumber,
+            ImageUrl = NormalizeImageUrl(request.ImageUrl),
             TableToken = await GenerateUniqueTableTokenAsync(cancellationToken),
             IsActive = true,
             CreatedAtUtc = nowUtc,
@@ -131,6 +132,7 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         var table = await GetOwnedTableAsync(restaurant.Id, tableId, cancellationToken);
 
         table.IsActive = request.IsActive;
+        table.ImageUrl = NormalizeImageUrl(request.ImageUrl);
         table.UpdatedAtUtc = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -243,6 +245,7 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
             AverageRating = averageRating,
             TotalRatingsCount = totalRatingsCount,
             TableNumber = table.TableNumber,
+            ImageUrl = table.ImageUrl,
             TableToken = table.TableToken,
             IsActive = table.IsActive,
             CreatedAtUtc = table.CreatedAtUtc,
@@ -264,11 +267,17 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
             AverageRating = averageRating,
             TotalRatingsCount = totalRatingsCount,
             TableNumber = table.TableNumber,
+            ImageUrl = table.ImageUrl,
             TableToken = table.TableToken,
             IsActive = table.IsActive,
             CreatedAtUtc = table.CreatedAtUtc,
             UpdatedAtUtc = table.UpdatedAtUtc
         };
+    }
+
+    private static string? NormalizeImageUrl(string? imageUrl)
+    {
+        return string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
     }
 
     private static double CalculateAverageRating(Restaurant restaurant)

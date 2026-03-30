@@ -31,6 +31,7 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
             {
                 entity.Id,
                 entity.TableNumber,
+                entity.ImageUrl,
                 entity.TableToken,
                 entity.IsActive,
                 entity.RestaurantId,
@@ -113,6 +114,7 @@ public class RestaurantTableAccessService : IRestaurantTableAccessService
             TotalRatingsCount = table.TotalRatingsCount,
             RestaurantTableId = table.Id,
             TableNumber = table.TableNumber,
+            ImageUrl = table.ImageUrl,
             TableDisplayName = $"Table {table.TableNumber}",
             TableToken = table.TableToken,
             RequiresAuthenticationForOrdering = true

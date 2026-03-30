@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using SmartDiningSystem.Application.DTOs.Common;
 using SmartDiningSystem.Application.DTOs.Restaurants;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
@@ -19,10 +20,14 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<RecommendedRestaurantDto>> GetRecommendationsAsync(
+    public async Task<PaginationResponseDto<RecommendedRestaurantDto>> GetRecommendationsAsync(
         Guid userId,
-        CancellationToken cancellationToken)
+        int pageNumber = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
+        ValidatePagination(pageNumber, pageSize);
+
         var userEligible = await _dbContext.UserAccounts
             .AsNoTracking()
             .AnyAsync(
@@ -41,7 +46,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
         var restaurants = await LoadApprovedRestaurantsWithSignalsAsync(cancellationToken);
         if (restaurants.Count == 0)
         {
-            return Array.Empty<RecommendedRestaurantDto>();
+            return BuildPaginationResponse([], pageNumber, pageSize);
         }
 
         var hasHistory = await _dbContext.Orders
@@ -50,7 +55,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
 
         if (!hasHistory)
         {
-            return BuildFallbackRecommendations(restaurants);
+            return BuildPaginationResponse(BuildFallbackRecommendations(restaurants), pageNumber, pageSize);
         }
 
         var userRestaurantCounts = await _dbContext.Orders
@@ -119,7 +124,7 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
 
         if (ranked.Count >= RecommendationLimit)
         {
-            return ranked.Select(MapRecommendation).ToList();
+            return BuildPaginationResponse(ranked.Select(MapRecommendation).ToList(), pageNumber, pageSize);
         }
 
         var fallbackFill = BuildFallbackRecommendations(
@@ -147,11 +152,63 @@ public class RestaurantRecommendationService : IRestaurantRecommendationService
                 0,
                 dto.RecommendationReason));
 
-        return ranked
+        var recommendations = ranked
             .Concat(fallbackFill)
             .Take(RecommendationLimit)
             .Select(MapRecommendation)
             .ToList();
+
+        return BuildPaginationResponse(recommendations, pageNumber, pageSize);
+    }
+
+    private static PaginationResponseDto<RecommendedRestaurantDto> BuildPaginationResponse(
+        IReadOnlyList<RecommendedRestaurantDto> recommendations,
+        int pageNumber,
+        int pageSize)
+    {
+        var totalCount = recommendations.Count;
+        var pagedItems = recommendations
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PaginationResponseDto<RecommendedRestaurantDto>
+        {
+            Items = pagedItems,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize),
+            HasPreviousPage = pageNumber > 1 && totalCount > 0,
+            HasNextPage = totalCount > 0 && pageNumber < (int)Math.Ceiling(totalCount / (double)pageSize)
+        };
+    }
+
+    private static void ValidatePagination(int pageNumber, int pageSize)
+    {
+        Dictionary<string, string[]>? errors = null;
+
+        if (pageNumber < 1)
+        {
+            errors = new Dictionary<string, string[]>
+            {
+                ["pageNumber"] = ["Page number must be greater than or equal to 1."]
+            };
+        }
+
+        if (pageSize is < 1 or > 50)
+        {
+            errors ??= new Dictionary<string, string[]>();
+            errors["pageSize"] = ["Page size must be between 1 and 50."];
+        }
+
+        if (errors is not null)
+        {
+            throw new RestaurantRecommendationServiceException(
+                "Invalid pagination parameters.",
+                StatusCodes.Status400BadRequest,
+                errors);
+        }
     }
 
     private async Task<List<RestaurantRecommendationCandidate>> LoadApprovedRestaurantsWithSignalsAsync(

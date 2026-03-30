@@ -109,10 +109,13 @@ public class RestaurantsController : ControllerBase
 
     [HttpGet("recommendations")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<RecommendedRestaurantDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<PaginationResponseDto<RecommendedRestaurantDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<RecommendedRestaurantDto>>>> GetRecommendations(
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiSuccessResponseDto<PaginationResponseDto<RecommendedRestaurantDto>>>> GetRecommendations(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         if (userId is null)
@@ -122,8 +125,12 @@ public class RestaurantsController : ControllerBase
 
         try
         {
-            var recommendations = await _restaurantRecommendationService.GetRecommendationsAsync(userId.Value, cancellationToken);
-            return Ok(new ApiSuccessResponseDto<IReadOnlyList<RecommendedRestaurantDto>>
+            var recommendations = await _restaurantRecommendationService.GetRecommendationsAsync(
+                userId.Value,
+                pageNumber,
+                pageSize,
+                cancellationToken);
+            return Ok(new ApiSuccessResponseDto<PaginationResponseDto<RecommendedRestaurantDto>>
             {
                 Message = "Restaurant recommendations loaded successfully.",
                 Data = recommendations

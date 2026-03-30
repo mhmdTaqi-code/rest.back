@@ -53,6 +53,7 @@ public class RestaurantQueryService : IRestaurantQueryService
             {
                 TableId = table.Id,
                 TableNumber = table.TableNumber,
+                ImageUrl = table.ImageUrl,
                 IsActive = table.IsActive
             })
             .ToListAsync(cancellationToken);

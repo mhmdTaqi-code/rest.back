@@ -119,7 +119,7 @@ public class OwnerRestaurantTablesController : ControllerBase
             var table = await _restaurantTableManagementService.UpdateTableStatusAsync(ownerId.Value, tableId, request, cancellationToken);
             return Ok(new ApiSuccessResponseDto<RestaurantTableDto>
             {
-                Message = "Restaurant table status updated successfully.",
+                Message = "Restaurant table updated successfully.",
                 Data = table
             });
         }

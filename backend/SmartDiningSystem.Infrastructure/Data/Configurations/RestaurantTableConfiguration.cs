@@ -20,6 +20,9 @@ public class RestaurantTableConfiguration : IEntityTypeConfiguration<RestaurantT
             .IsRequired()
             .HasMaxLength(128);
 
+        builder.Property(table => table.ImageUrl)
+            .HasMaxLength(1000);
+
         builder.Property(table => table.IsActive)
             .IsRequired()
             .HasDefaultValue(true);

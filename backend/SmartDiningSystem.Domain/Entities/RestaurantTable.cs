@@ -5,6 +5,7 @@ public class RestaurantTable
     public Guid Id { get; set; }
     public Guid RestaurantId { get; set; }
     public int TableNumber { get; set; }
+    public string? ImageUrl { get; set; }
     public string TableToken { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAtUtc { get; set; }
