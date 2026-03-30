@@ -39,6 +39,43 @@ public class RestaurantQueryService : IRestaurantQueryService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<RestaurantDetailsDto> GetRestaurantByIdAsync(Guid restaurantId, CancellationToken cancellationToken)
+    {
+        if (restaurantId == Guid.Empty)
+        {
+            throw BuildValidationException("restaurantId", "Restaurant id is required.");
+        }
+
+        var restaurant = await _dbContext.Restaurants
+            .AsNoTracking()
+            .Where(entity => entity.Id == restaurantId && entity.ApprovalStatus == RestaurantApprovalStatus.Approved)
+            .Select(entity => new RestaurantDetailsDto
+            {
+                RestaurantId = entity.Id,
+                Name = entity.Name,
+                Description = entity.Description,
+                Address = entity.Address,
+                ContactPhone = entity.ContactPhone,
+                ImageUrl = entity.ImageUrl,
+                AverageRating = Math.Round(entity.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
+                TotalRatingsCount = entity.Ratings.Count()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (restaurant is null)
+        {
+            throw new RestaurantQueryServiceException(
+                "Restaurant was not found or is not publicly available.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    ["restaurantId"] = ["The selected restaurant was not found or is not approved."]
+                });
+        }
+
+        return restaurant;
+    }
+
     public async Task<IReadOnlyList<PublicRestaurantTableDto>> GetTablesByRestaurantIdAsync(
         Guid restaurantId,
         CancellationToken cancellationToken)

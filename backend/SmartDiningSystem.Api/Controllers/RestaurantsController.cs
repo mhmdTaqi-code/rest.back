@@ -37,6 +37,29 @@ public class RestaurantsController : ControllerBase
         });
     }
 
+    [HttpGet("{restaurantId:guid}")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<RestaurantDetailsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<RestaurantDetailsDto>>> GetRestaurantById(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var restaurant = await _restaurantQueryService.GetRestaurantByIdAsync(restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<RestaurantDetailsDto>
+            {
+                Success = true,
+                Data = restaurant
+            });
+        }
+        catch (RestaurantQueryServiceException exception)
+        {
+            return BuildErrorResponse<RestaurantDetailsDto>(exception);
+        }
+    }
+
     [HttpGet("{restaurantId:guid}/tables")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantTableDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
