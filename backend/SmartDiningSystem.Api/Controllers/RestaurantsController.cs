@@ -60,6 +60,29 @@ public class RestaurantsController : ControllerBase
         }
     }
 
+    [HttpGet("{restaurantId:guid}/categories")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuCategoryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuCategoryDto>>>> GetRestaurantCategories(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var categories = await _restaurantQueryService.GetCategoriesByRestaurantIdAsync(restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuCategoryDto>>
+            {
+                Success = true,
+                Data = categories
+            });
+        }
+        catch (RestaurantQueryServiceException exception)
+        {
+            return BuildErrorResponse<IReadOnlyList<PublicRestaurantMenuCategoryDto>>(exception);
+        }
+    }
+
     [HttpGet("{restaurantId:guid}/menu")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<PublicRestaurantMenuItemDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]

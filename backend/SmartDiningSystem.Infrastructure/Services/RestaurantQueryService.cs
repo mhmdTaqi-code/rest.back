@@ -58,6 +58,27 @@ public class RestaurantQueryService : IRestaurantQueryService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PublicRestaurantMenuCategoryDto>> GetCategoriesByRestaurantIdAsync(
+        Guid restaurantId,
+        CancellationToken cancellationToken)
+    {
+        await EnsureApprovedRestaurantExistsAsync(restaurantId, cancellationToken);
+
+        return await _dbContext.MenuCategories
+            .AsNoTracking()
+            .Where(category => category.RestaurantId == restaurantId && category.IsActive)
+            .OrderBy(category => category.DisplayOrder)
+            .ThenBy(category => category.Name)
+            .Select(category => new PublicRestaurantMenuCategoryDto
+            {
+                CategoryId = category.Id,
+                Name = category.Name,
+                Description = category.Description,
+                DisplayOrder = category.DisplayOrder
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<PublicRestaurantMenuItemDto>> GetMenuByRestaurantIdAsync(
         Guid restaurantId,
         GetRestaurantMenuQueryDto query,
