@@ -1,17 +1,18 @@
 namespace SmartDiningSystem.Application.Services.Exceptions;
 
-public class TableReservationServiceException : Exception
+public class BookingFlowServiceException : Exception
 {
-    public TableReservationServiceException(
+    public BookingFlowServiceException(
         string message,
         int statusCode,
         IDictionary<string, string[]>? errors = null)
         : base(message)
     {
         StatusCode = statusCode;
-        Errors = errors ?? new Dictionary<string, string[]>();
+        Errors = errors;
     }
 
     public int StatusCode { get; }
-    public IDictionary<string, string[]> Errors { get; }
+
+    public IDictionary<string, string[]>? Errors { get; }
 }

@@ -53,9 +53,14 @@ public class RestaurantTableConfiguration : IEntityTypeConfiguration<RestaurantT
             .HasForeignKey(cart => cart.RestaurantTableId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(table => table.Reservations)
-            .WithOne(reservation => reservation.RestaurantTable)
-            .HasForeignKey(reservation => reservation.RestaurantTableId)
+        builder.HasMany(table => table.Bookings)
+            .WithOne(booking => booking.RestaurantTable)
+            .HasForeignKey(booking => booking.RestaurantTableId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(table => table.TableSessions)
+            .WithOne(session => session.RestaurantTable)
+            .HasForeignKey(session => session.RestaurantTableId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

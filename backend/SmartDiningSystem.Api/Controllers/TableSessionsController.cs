@@ -10,28 +10,25 @@ using SmartDiningSystem.Application.Services.Interfaces;
 namespace SmartDiningSystem.Api.Controllers;
 
 [ApiController]
-[Route("api/table-ordering/restaurants/{restaurantId:guid}/tables/{tableId:guid}")]
+[Route("api/table-sessions/{sessionId:guid}/orders")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class TableOrderingController : ControllerBase
+public class TableSessionsController : ControllerBase
 {
-    private readonly ITableOrderService _tableOrderService;
+    private readonly ITableSessionOrderService _tableSessionOrderService;
 
-    public TableOrderingController(ITableOrderService tableOrderService)
+    public TableSessionsController(ITableSessionOrderService tableSessionOrderService)
     {
-        _tableOrderService = tableOrderService;
+        _tableSessionOrderService = tableSessionOrderService;
     }
 
-    [HttpPost("orders")]
+    [HttpPost]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<SubmittedTableOrderResponseDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiSuccessResponseDto<SubmittedTableOrderResponseDto>>> SubmitOrder(
-        Guid restaurantId,
-        Guid tableId,
-        [FromBody] SubmitTableOrderRequestDto? request,
+        Guid sessionId,
+        [FromBody] SubmitTableOrderRequestDto request,
         CancellationToken cancellationToken)
     {
-        var userId = GetUserIdOrUnauthorized();
+        var userId = GetUserId();
         if (userId is null)
         {
             return Unauthorized(BuildUnauthorizedResponse());
@@ -39,25 +36,20 @@ public class TableOrderingController : ControllerBase
 
         try
         {
-            var order = await _tableOrderService.SubmitOrderAsync(
-                userId.Value,
-                restaurantId,
-                tableId,
-                request ?? new SubmitTableOrderRequestDto(),
-                cancellationToken);
+            var result = await _tableSessionOrderService.SubmitOrderAsync(userId.Value, sessionId, request, cancellationToken);
             return StatusCode(StatusCodes.Status201Created, new ApiSuccessResponseDto<SubmittedTableOrderResponseDto>
             {
                 Message = "Order submitted successfully.",
-                Data = order
+                Data = result
             });
         }
-        catch (TableOrderingServiceException exception)
+        catch (BookingFlowServiceException exception)
         {
             return BuildErrorResponse<SubmittedTableOrderResponseDto>(exception);
         }
     }
 
-    private Guid? GetUserIdOrUnauthorized()
+    private Guid? GetUserId()
     {
         var userId = User.FindFirstValue("userId");
         return Guid.TryParse(userId, out var parsed) ? parsed : null;
@@ -72,7 +64,7 @@ public class TableOrderingController : ControllerBase
         };
     }
 
-    private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(TableOrderingServiceException exception)
+    private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(BookingFlowServiceException exception)
     {
         return StatusCode(exception.StatusCode, new ApiErrorResponseDto
         {

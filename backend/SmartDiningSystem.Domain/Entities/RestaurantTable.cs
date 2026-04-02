@@ -14,5 +14,6 @@ public class RestaurantTable
     public Restaurant? Restaurant { get; set; }
     public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
-    public ICollection<TableReservation> Reservations { get; set; } = new List<TableReservation>();
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
 }

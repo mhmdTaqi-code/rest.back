@@ -19,6 +19,7 @@ public class UserAccount
     public ICollection<TableCart> TableCarts { get; set; } = new List<TableCart>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<RestaurantRating> RestaurantRatings { get; set; } = new List<RestaurantRating>();
-    public ICollection<TableReservation> TableReservations { get; set; } = new List<TableReservation>();
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<TableSession> TableSessions { get; set; } = new List<TableSession>();
     public ICollection<OtpCode> LoginOtpCodes { get; set; } = new List<OtpCode>();
 }

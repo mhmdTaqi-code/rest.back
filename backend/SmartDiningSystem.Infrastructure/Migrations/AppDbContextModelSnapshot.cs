@@ -22,6 +22,102 @@ namespace SmartDiningSystem.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.Booking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CheckedInAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReservationTimeUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RestaurantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RestaurantTableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservationTimeUtc");
+
+                    b.HasIndex("RestaurantId");
+
+                    b.HasIndex("RestaurantTableId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("RestaurantTableId", "Status", "ReservationTimeUtc");
+
+                    b.ToTable("Bookings", (string)null);
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.BookingItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("MenuItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("MenuItemId");
+
+                    b.ToTable("BookingItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BookingItems_LineTotal_Positive", "\"LineTotal\" > 0");
+
+                            t.HasCheckConstraint("CK_BookingItems_Quantity_Positive", "\"Quantity\" > 0");
+
+                            t.HasCheckConstraint("CK_BookingItems_UnitPrice_Positive", "\"UnitPrice\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -90,13 +186,13 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsHighlighted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
-
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("MenuCategoryId")
                         .HasColumnType("uuid");
@@ -140,10 +236,11 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid>("RestaurantTableId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("TableSessionId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -158,6 +255,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.HasIndex("RestaurantTableId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("TableSessionId");
 
                     b.HasIndex("UserId");
 
@@ -444,14 +543,14 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
 
                     b.Property<Guid>("RestaurantId")
                         .HasColumnType("uuid");
@@ -545,48 +644,19 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableReservation", b =>
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableSession", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("CancelledAtUtc")
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CancellationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("CheckedInAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ConfirmedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("DepositAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<DateTime?>("DepositForfeitedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DepositPaidAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("GuestCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("GracePeriodEndsAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDepositPaid")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("NoShowMarkedAtUtc")
+                    b.Property<DateTime>("OpenedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("RestaurantId")
@@ -595,47 +665,27 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid>("RestaurantTableId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("ReservationEndUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ReservationStartUtc")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReservationEndUtc");
-
-                    b.HasIndex("ReservationStartUtc");
+                    b.HasIndex("BookingId");
 
                     b.HasIndex("RestaurantId");
 
                     b.HasIndex("RestaurantTableId");
 
-                    b.HasIndex("RestaurantTableId", "Status", "ReservationStartUtc", "ReservationEndUtc");
-
                     b.HasIndex("Status");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TableReservations", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_TableReservations_DepositAmount_Minimum", "\"DepositAmount\" >= 5000");
-
-                            t.HasCheckConstraint("CK_TableReservations_EndAfterStart", "\"ReservationEndUtc\" > \"ReservationStartUtc\"");
-
-                            t.HasCheckConstraint("CK_TableReservations_GuestCount_Positive", "\"GuestCount\" > 0");
-                        });
+                    b.ToTable("TableSessions", (string)null);
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.UserAccount", b =>
@@ -694,6 +744,52 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.ToTable("UserAccounts", (string)null);
                 });
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.Booking", b =>
+                {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
+                        .WithMany("Bookings")
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.RestaurantTable", "RestaurantTable")
+                        .WithMany("Bookings")
+                        .HasForeignKey("RestaurantTableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.UserAccount", "User")
+                        .WithMany("Bookings")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Restaurant");
+
+                    b.Navigation("RestaurantTable");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.BookingItem", b =>
+                {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.Booking", "Booking")
+                        .WithMany("Items")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartDiningSystem.Domain.Entities.MenuItem", "MenuItem")
+                        .WithMany()
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("MenuItem");
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
                 {
                     b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
@@ -737,6 +833,11 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("SmartDiningSystem.Domain.Entities.TableSession", "TableSession")
+                        .WithMany("Orders")
+                        .HasForeignKey("TableSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SmartDiningSystem.Domain.Entities.UserAccount", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
@@ -746,6 +847,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Navigation("Restaurant");
 
                     b.Navigation("RestaurantTable");
+
+                    b.Navigation("TableSession");
 
                     b.Navigation("User");
                 });
@@ -873,31 +976,44 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Navigation("TableCart");
                 });
 
-            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableReservation", b =>
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableSession", b =>
                 {
+                    b.HasOne("SmartDiningSystem.Domain.Entities.Booking", "Booking")
+                        .WithMany("TableSessions")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
-                        .WithMany("Reservations")
+                        .WithMany("TableSessions")
                         .HasForeignKey("RestaurantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SmartDiningSystem.Domain.Entities.RestaurantTable", "RestaurantTable")
-                        .WithMany("Reservations")
+                        .WithMany("TableSessions")
                         .HasForeignKey("RestaurantTableId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SmartDiningSystem.Domain.Entities.UserAccount", "User")
-                        .WithMany("TableReservations")
+                        .WithMany("TableSessions")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Booking");
 
                     b.Navigation("Restaurant");
 
                     b.Navigation("RestaurantTable");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.Booking", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("TableSessions");
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.MenuCategory", b =>
@@ -924,6 +1040,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.Restaurant", b =>
                 {
+                    b.Navigation("Bookings");
+
                     b.Navigation("MenuCategories");
 
                     b.Navigation("MenuItems");
@@ -932,20 +1050,22 @@ namespace SmartDiningSystem.Infrastructure.Migrations
 
                     b.Navigation("Ratings");
 
-                    b.Navigation("Reservations");
-
                     b.Navigation("TableCarts");
+
+                    b.Navigation("TableSessions");
 
                     b.Navigation("Tables");
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.RestaurantTable", b =>
                 {
+                    b.Navigation("Bookings");
+
                     b.Navigation("Orders");
 
-                    b.Navigation("Reservations");
-
                     b.Navigation("TableCarts");
+
+                    b.Navigation("TableSessions");
                 });
 
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableCart", b =>
@@ -953,8 +1073,15 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("SmartDiningSystem.Domain.Entities.TableSession", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
             modelBuilder.Entity("SmartDiningSystem.Domain.Entities.UserAccount", b =>
                 {
+                    b.Navigation("Bookings");
+
                     b.Navigation("LoginOtpCodes");
 
                     b.Navigation("Orders");
@@ -963,9 +1090,9 @@ namespace SmartDiningSystem.Infrastructure.Migrations
 
                     b.Navigation("RestaurantRatings");
 
-                    b.Navigation("TableReservations");
-
                     b.Navigation("TableCarts");
+
+                    b.Navigation("TableSessions");
                 });
 #pragma warning restore 612, 618
         }

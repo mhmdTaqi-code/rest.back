@@ -17,10 +17,12 @@ public class AppDbContext : DbContext
     public DbSet<RestaurantTable> RestaurantTables => Set<RestaurantTable>();
     public DbSet<TableCart> TableCarts => Set<TableCart>();
     public DbSet<TableCartItem> TableCartItems => Set<TableCartItem>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingItem> BookingItems => Set<BookingItem>();
+    public DbSet<TableSession> TableSessions => Set<TableSession>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<RestaurantRating> RestaurantRatings => Set<RestaurantRating>();
-    public DbSet<TableReservation> TableReservations => Set<TableReservation>();
     public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
     public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
 

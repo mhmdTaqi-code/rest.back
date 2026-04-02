@@ -8,6 +8,7 @@ public class Order
     public Guid UserId { get; set; }
     public Guid RestaurantId { get; set; }
     public Guid RestaurantTableId { get; set; }
+    public Guid? TableSessionId { get; set; }
     public OrderStatus Status { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
@@ -15,5 +16,6 @@ public class Order
     public UserAccount? User { get; set; }
     public Restaurant? Restaurant { get; set; }
     public RestaurantTable? RestaurantTable { get; set; }
+    public TableSession? TableSession { get; set; }
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

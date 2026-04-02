@@ -74,9 +74,14 @@ public class UserAccountConfiguration : IEntityTypeConfiguration<UserAccount>
             .HasForeignKey(rating => rating.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(user => user.TableReservations)
-            .WithOne(reservation => reservation.User)
-            .HasForeignKey(reservation => reservation.UserId)
+        builder.HasMany(user => user.Bookings)
+            .WithOne(booking => booking.User)
+            .HasForeignKey(booking => booking.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(user => user.TableSessions)
+            .WithOne(session => session.User)
+            .HasForeignKey(session => session.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(user => user.LoginOtpCodes)

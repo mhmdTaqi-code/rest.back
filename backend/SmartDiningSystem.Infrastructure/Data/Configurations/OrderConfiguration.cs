@@ -28,11 +28,17 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(order => order.UserId);
         builder.HasIndex(order => order.RestaurantId);
         builder.HasIndex(order => order.RestaurantTableId);
+        builder.HasIndex(order => order.TableSessionId);
         builder.HasIndex(order => order.Status);
 
         builder.HasOne(order => order.RestaurantTable)
             .WithMany(table => table.Orders)
             .HasForeignKey(order => order.RestaurantTableId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(order => order.TableSession)
+            .WithMany(session => session.Orders)
+            .HasForeignKey(order => order.TableSessionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(order => order.OrderItems)

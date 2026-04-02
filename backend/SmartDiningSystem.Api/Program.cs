@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
+using SmartDiningSystem.Api.Swagger;
 using SmartDiningSystem.Api.Extensions;
 using SmartDiningSystem.Application.DTOs.Common;
 using SmartDiningSystem.Infrastructure.Data;
@@ -69,6 +70,8 @@ builder.Services.AddSwaggerGen(options =>
     {
         [jwtSecurityScheme] = Array.Empty<string>()
     });
+
+    options.SchemaFilter<CreateBookingRequestSchemaFilter>();
 });
 
 builder.Services.AddAuthorization();

@@ -161,6 +161,24 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
                 StatusCodes.Status409Conflict);
         }
 
+        var hasBookings = await _dbContext.Bookings
+            .AnyAsync(booking => booking.RestaurantTableId == tableId, cancellationToken);
+        if (hasBookings)
+        {
+            throw new RestaurantTableManagementServiceException(
+                "This table cannot be deleted because it is referenced by existing bookings.",
+                StatusCodes.Status409Conflict);
+        }
+
+        var hasSessions = await _dbContext.TableSessions
+            .AnyAsync(session => session.RestaurantTableId == tableId, cancellationToken);
+        if (hasSessions)
+        {
+            throw new RestaurantTableManagementServiceException(
+                "This table cannot be deleted because it is referenced by existing table sessions.",
+                StatusCodes.Status409Conflict);
+        }
+
         var hasCarts = await _dbContext.TableCarts
             .AnyAsync(cart => cart.RestaurantTableId == tableId, cancellationToken);
         if (hasCarts)
