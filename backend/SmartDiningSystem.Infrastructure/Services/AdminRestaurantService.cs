@@ -6,6 +6,7 @@ using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Domain.Entities;
 using SmartDiningSystem.Domain.Enums;
 using SmartDiningSystem.Application.Services.Interfaces;
+using SmartDiningSystem.Application.Utilities;
 
 namespace SmartDiningSystem.Infrastructure.Services;
 
@@ -35,6 +36,50 @@ public class AdminRestaurantService : IAdminRestaurantService
                 TotalRatingsCount = restaurant.Ratings.Count()
             })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<AdminRestaurantDetailsDto> CreateRestaurantForOwnerAsync(
+        AdminCreateRestaurantRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var owner = await _dbContext.UserAccounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                account => account.Id == request.OwnerUserId && account.Role == UserRole.RestaurantOwner,
+                cancellationToken);
+
+        if (owner is null)
+        {
+            throw new AdminRestaurantServiceException(
+                "Restaurant owner account was not found.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    [nameof(request.OwnerUserId)] = ["Select a valid restaurant owner account."]
+                });
+        }
+
+        var restaurant = new Restaurant
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = request.OwnerUserId,
+            Name = request.Name.Trim(),
+            Description = NormalizeOptionalText(request.Description),
+            ImageUrl = NormalizeOptionalText(request.ImageUrl),
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
+            Address = request.Address.Trim(),
+            ContactPhone = NormalizePhoneNumber(request.ContactPhone),
+            ApprovalStatus = RestaurantApprovalStatus.Pending,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _dbContext.Restaurants.Add(restaurant);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return await GetRestaurantDetailsAsync(restaurant.Id, cancellationToken);
     }
 
     public async Task<AdminRestaurantDetailsDto> GetRestaurantDetailsAsync(Guid restaurantId, CancellationToken cancellationToken)
@@ -139,5 +184,26 @@ public class AdminRestaurantService : IAdminRestaurantService
             AverageRating = Math.Round(entity.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
             TotalRatingsCount = entity.Ratings.Count()
         };
+    }
+
+    private static string? NormalizeOptionalText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string NormalizePhoneNumber(string rawPhoneNumber)
+    {
+        if (!IraqiPhoneNumberHelper.TryNormalize(rawPhoneNumber, out var normalizedPhoneNumber))
+        {
+            throw new AdminRestaurantServiceException(
+                "Restaurant phone number must be a valid Iraqi mobile number.",
+                StatusCodes.Status400BadRequest,
+                new Dictionary<string, string[]>
+                {
+                    [nameof(AdminCreateRestaurantRequestDto.ContactPhone)] = ["Restaurant phone number must be a valid Iraqi mobile number."]
+                });
+        }
+
+        return normalizedPhoneNumber;
     }
 }

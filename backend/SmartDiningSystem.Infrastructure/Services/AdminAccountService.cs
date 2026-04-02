@@ -62,6 +62,16 @@ public class AdminAccountService : IAdminAccountService
                 IsActive = row.Account.IsActive,
                 IsPhoneVerified = row.Account.IsPhoneVerified,
                 RestaurantApprovalStatus = row.LatestRestaurantApprovalStatus,
+                OwnedRestaurantCount = row.Account.OwnedRestaurants.Count,
+                OwnedRestaurants = row.Account.OwnedRestaurants
+                    .OrderBy(restaurant => restaurant.CreatedAtUtc)
+                    .Select(restaurant => new AdminOwnedRestaurantSummaryDto
+                    {
+                        RestaurantId = restaurant.Id,
+                        RestaurantName = restaurant.Name,
+                        ApprovalStatus = restaurant.ApprovalStatus.ToString()
+                    })
+                    .ToList(),
                 CreatedAtUtc = row.Account.CreatedAtUtc
             })
             .ToListAsync(cancellationToken);

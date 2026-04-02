@@ -10,5 +10,8 @@ public class AdminAccountListItemDto
     public bool IsActive { get; set; }
     public bool IsPhoneVerified { get; set; }
     public string? RestaurantApprovalStatus { get; set; }
+    public int OwnedRestaurantCount { get; set; }
+    public IReadOnlyList<AdminOwnedRestaurantSummaryDto> OwnedRestaurants { get; set; }
+        = Array.Empty<AdminOwnedRestaurantSummaryDto>();
     public DateTime CreatedAtUtc { get; set; }
 }

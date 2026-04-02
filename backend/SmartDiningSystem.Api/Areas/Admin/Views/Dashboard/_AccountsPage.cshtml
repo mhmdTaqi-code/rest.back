@@ -53,7 +53,7 @@
                         <th>Role</th>
                         <th>Status</th>
                         <th>Phone Verified</th>
-                        <th>Restaurant Status</th>
+                        <th>Restaurants</th>
                         <th>Created</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -164,6 +164,65 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveAccountButton">Save Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="restaurantEditorModal" tabindex="-1" aria-labelledby="restaurantEditorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title h5 mb-1" id="restaurantEditorModalLabel">Add Restaurant</h2>
+                    <p class="text-muted small mb-0" id="restaurantEditorModalHint">Create an additional restaurant for the selected owner.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="restaurantFormAlertHost" class="mb-3"></div>
+                <form id="restaurantEditorForm" class="row g-3" novalidate>
+                    <input type="hidden" id="restaurantOwnerUserId" />
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="restaurantCreateName">Restaurant Name</label>
+                        <input id="restaurantCreateName" name="name" class="form-control" maxlength="200" required />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="restaurantCreatePhone">Restaurant Phone</label>
+                        <input id="restaurantCreatePhone" name="contactPhone" class="form-control" maxlength="50" required />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="restaurantCreateAddress">Address</label>
+                        <input id="restaurantCreateAddress" name="address" class="form-control" maxlength="500" required />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="restaurantCreateDescription">Description</label>
+                        <textarea id="restaurantCreateDescription" name="description" class="form-control" rows="4" maxlength="1000" required></textarea>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="restaurantCreateImageUrl">Image URL</label>
+                        <input id="restaurantCreateImageUrl" name="imageUrl" class="form-control" maxlength="1000" />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label" for="restaurantCreateLatitude">Latitude</label>
+                        <input id="restaurantCreateLatitude" name="latitude" type="number" step="any" class="form-control" />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label" for="restaurantCreateLongitude">Longitude</label>
+                        <input id="restaurantCreateLongitude" name="longitude" type="number" step="any" class="form-control" />
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveRestaurantButton">Create Restaurant</button>
             </div>
         </div>
     </div>

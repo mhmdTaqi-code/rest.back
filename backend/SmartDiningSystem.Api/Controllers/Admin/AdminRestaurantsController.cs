@@ -33,6 +33,29 @@ public class AdminRestaurantsController : ControllerBase
         });
     }
 
+    [HttpPost]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<AdminRestaurantDetailsDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<AdminRestaurantDetailsDto>>> CreateRestaurant(
+        [FromBody] AdminCreateRestaurantRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var restaurant = await _adminRestaurantService.CreateRestaurantForOwnerAsync(request, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, new ApiSuccessResponseDto<AdminRestaurantDetailsDto>
+            {
+                Message = "Restaurant created successfully.",
+                Data = restaurant
+            });
+        }
+        catch (AdminRestaurantServiceException exception)
+        {
+            return BuildErrorResponse(exception);
+        }
+    }
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<AdminRestaurantDetailsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]

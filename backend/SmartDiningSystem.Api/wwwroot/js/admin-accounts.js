@@ -9,6 +9,9 @@
     const formAlertHost = document.getElementById('accountFormAlertHost');
     const form = document.getElementById('accountEditorForm');
     const saveButton = document.getElementById('saveAccountButton');
+    const restaurantForm = document.getElementById('restaurantEditorForm');
+    const restaurantFormAlertHost = document.getElementById('restaurantFormAlertHost');
+    const saveRestaurantButton = document.getElementById('saveRestaurantButton');
     const roleField = document.getElementById('role');
     const modalLabel = document.getElementById('accountEditorModalLabel');
     const modalHint = document.getElementById('accountEditorModalHint');
@@ -21,11 +24,12 @@
         restaurantDescription: document.getElementById('restaurantDescription')
     };
 
-    if (!filterForm || !form || !window.bootstrap) {
+    if (!filterForm || !form || !restaurantForm || !window.bootstrap) {
         return;
     }
 
     const editorModal = new bootstrap.Modal(document.getElementById('accountEditorModal'));
+    const restaurantModal = new bootstrap.Modal(document.getElementById('restaurantEditorModal'));
     let currentMode = 'create';
     let currentAccounts = [];
 
@@ -40,6 +44,9 @@
 
     saveButton.addEventListener('click', async function () {
         await submitAccount();
+    });
+    saveRestaurantButton.addEventListener('click', async function () {
+        await submitRestaurant();
     });
 
     roleField.addEventListener('change', refreshRoleDrivenHints);
@@ -62,6 +69,14 @@
             const accountId = deleteButton.getAttribute('data-account-id');
             const accountName = deleteButton.getAttribute('data-account-name') || 'this account';
             await deleteAccount(accountId, accountName);
+            return;
+        }
+
+        const addRestaurantButton = event.target.closest('[data-action="add-restaurant"]');
+        if (addRestaurantButton) {
+            openRestaurantModal(
+                addRestaurantButton.getAttribute('data-account-id'),
+                addRestaurantButton.getAttribute('data-account-name') || 'this owner');
         }
     });
 
@@ -122,9 +137,15 @@
                 '<td><span class="badge text-bg-light border">' + escapeHtml(account.role) + '</span></td>',
                 '<td>' + buildStatusBadge(account.isActive ? 'Active' : 'Inactive', account.isActive ? 'success' : 'secondary') + '</td>',
                 '<td>' + buildStatusBadge(account.isPhoneVerified ? 'Verified' : 'Unverified', account.isPhoneVerified ? 'primary' : 'warning') + '</td>',
-                '<td>' + escapeHtml(account.restaurantApprovalStatus || '-') + '</td>',
+                '<td>' + buildRestaurantsSummary(account) + '</td>',
                 '<td>' + escapeHtml(formatDate(account.createdAtUtc)) + '</td>',
-                '<td class="text-end"><div class="d-inline-flex gap-2 admin-row-actions"><button type="button" class="btn btn-sm btn-outline-primary" data-action="edit" data-account-id="' + escapeHtml(account.id) + '">Edit</button><button type="button" class="btn btn-sm btn-outline-danger" data-action="delete" data-account-id="' + escapeHtml(account.id) + '" data-account-name="' + escapeHtml(account.fullName) + '">Delete</button></div></td>',
+                '<td class="text-end"><div class="d-inline-flex gap-2 admin-row-actions">' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary" data-action="edit" data-account-id="' + escapeHtml(account.id) + '">Edit</button>' +
+                    (account.role === 'RestaurantOwner'
+                        ? '<button type="button" class="btn btn-sm btn-outline-success" data-action="add-restaurant" data-account-id="' + escapeHtml(account.id) + '" data-account-name="' + escapeHtml(account.fullName) + '">Add Restaurant</button>'
+                        : '') +
+                    '<button type="button" class="btn btn-sm btn-outline-danger" data-action="delete" data-account-id="' + escapeHtml(account.id) + '" data-account-name="' + escapeHtml(account.fullName) + '">Delete</button>' +
+                '</div></td>',
                 '</tr>'
             ].join('');
         }).join('');
@@ -228,6 +249,50 @@
         }
     }
 
+    function openRestaurantModal(ownerUserId, ownerName) {
+        restaurantForm.reset();
+        clearRestaurantErrors();
+        clearAlert(restaurantFormAlertHost);
+        document.getElementById('restaurantOwnerUserId').value = ownerUserId || '';
+        document.getElementById('restaurantEditorModalLabel').textContent = 'Add Restaurant';
+        document.getElementById('restaurantEditorModalHint').textContent = 'Create an additional restaurant for ' + ownerName + '.';
+        restaurantModal.show();
+    }
+
+    async function submitRestaurant() {
+        saveRestaurantButton.disabled = true;
+        clearRestaurantErrors();
+        clearAlert(restaurantFormAlertHost);
+
+        try {
+            const payload = buildRestaurantPayload();
+            const response = await fetch('/api/admin/restaurants', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                if (result && result.errors) {
+                    applyRestaurantFieldErrors(result.errors);
+                }
+                throw buildApiError(result, 'Restaurant could not be created.');
+            }
+
+            restaurantModal.hide();
+            showAlert(alertHost, 'success', result.message || 'Restaurant created successfully.');
+            await loadAccounts();
+        } catch (error) {
+            showAlert(restaurantFormAlertHost, 'danger', extractErrorMessage(error));
+        } finally {
+            saveRestaurantButton.disabled = false;
+        }
+    }
+
     function buildPayload() {
         const payload = {
             fullName: document.getElementById('fullName').value.trim(),
@@ -262,6 +327,22 @@
         return payload;
     }
 
+    function buildRestaurantPayload() {
+        const latitudeValue = document.getElementById('restaurantCreateLatitude').value.trim();
+        const longitudeValue = document.getElementById('restaurantCreateLongitude').value.trim();
+
+        return {
+            ownerUserId: document.getElementById('restaurantOwnerUserId').value,
+            name: document.getElementById('restaurantCreateName').value.trim(),
+            description: document.getElementById('restaurantCreateDescription').value.trim(),
+            address: document.getElementById('restaurantCreateAddress').value.trim(),
+            contactPhone: document.getElementById('restaurantCreatePhone').value.trim(),
+            imageUrl: document.getElementById('restaurantCreateImageUrl').value.trim() || null,
+            latitude: latitudeValue ? Number(latitudeValue) : null,
+            longitude: longitudeValue ? Number(longitudeValue) : null
+        };
+    }
+
     function isDefaultFilterState() {
         return !searchInput.value.trim() && !roleInput.value;
     }
@@ -288,11 +369,35 @@
         });
     }
 
+    function applyRestaurantFieldErrors(errors) {
+        Object.keys(errors).forEach(function (key) {
+            const normalized = key.charAt(0).toLowerCase() + key.slice(1);
+            const field = restaurantForm.querySelector('[name="' + normalized + '"]');
+            if (!field) {
+                return;
+            }
+            field.classList.add('is-invalid');
+            const feedback = field.parentElement.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = Array.isArray(errors[key]) ? errors[key].join(' ') : String(errors[key]);
+            }
+        });
+    }
+
     function clearErrors() {
         form.querySelectorAll('.is-invalid').forEach(function (field) {
             field.classList.remove('is-invalid');
         });
         form.querySelectorAll('.invalid-feedback').forEach(function (feedback) {
+            feedback.textContent = '';
+        });
+    }
+
+    function clearRestaurantErrors() {
+        restaurantForm.querySelectorAll('.is-invalid').forEach(function (field) {
+            field.classList.remove('is-invalid');
+        });
+        restaurantForm.querySelectorAll('.invalid-feedback').forEach(function (feedback) {
             feedback.textContent = '';
         });
     }
@@ -327,6 +432,21 @@
 
     function buildStatusBadge(label, type) {
         return '<span class="badge text-bg-' + type + '">' + escapeHtml(label) + '</span>';
+    }
+
+    function buildRestaurantsSummary(account) {
+        const restaurants = Array.isArray(account.ownedRestaurants) ? account.ownedRestaurants : [];
+        if (!restaurants.length) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        return [
+            '<div class="small fw-semibold mb-1">' + restaurants.length + ' restaurant' + (restaurants.length === 1 ? '' : 's') + '</div>',
+            restaurants.map(function (restaurant) {
+                return '<div class="small"><span class="fw-semibold">' + escapeHtml(restaurant.restaurantName) + '</span> ' +
+                    '<span class="badge text-bg-light border">' + escapeHtml(restaurant.approvalStatus) + '</span></div>';
+            }).join('')
+        ].join('');
     }
 
     function formatDate(value) {
