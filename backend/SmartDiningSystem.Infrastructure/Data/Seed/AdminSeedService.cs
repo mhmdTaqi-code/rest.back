@@ -9,6 +9,9 @@ namespace SmartDiningSystem.Infrastructure.Data.Seed;
 
 public class AdminSeedService
 {
+    private const string DevelopmentAdminSeedPassword = "DEV_ADMIN_COOKIE_AUTH_ONLY";
+    private const string DemoOwnerSeedPassword = "Owner123!";
+
     private static readonly SeedOwnerDefinition[] MenuOwners =
     [
         new(
@@ -180,6 +183,8 @@ public class AdminSeedService
 
     private async Task SeedAdminAsync(CancellationToken cancellationToken)
     {
+        var hashedAdminPassword = _passwordHashService.HashPassword(DevelopmentAdminSeedPassword);
+
         var existingAdmin = await _dbContext.UserAccounts
             .FirstOrDefaultAsync(user => user.Id == AdminAuthenticationService.DevelopmentAdminId, cancellationToken);
 
@@ -199,7 +204,7 @@ public class AdminSeedService
                 FullName = AdminAuthenticationService.DevelopmentAdminFullName,
                 PhoneNumber = AdminAuthenticationService.DevelopmentAdminPhone,
                 Username = AdminAuthenticationService.DevelopmentAdminPhone,
-                PasswordHash = "DEV_ADMIN_COOKIE_AUTH_ONLY",
+                PasswordHash = hashedAdminPassword,
                 Role = UserRole.Admin,
                 IsActive = true,
                 IsPhoneVerified = true,
@@ -214,7 +219,7 @@ public class AdminSeedService
             existingAdmin.FullName = AdminAuthenticationService.DevelopmentAdminFullName;
             existingAdmin.PhoneNumber = AdminAuthenticationService.DevelopmentAdminPhone;
             existingAdmin.Username = AdminAuthenticationService.DevelopmentAdminPhone;
-            existingAdmin.PasswordHash = "DEV_ADMIN_COOKIE_AUTH_ONLY";
+            existingAdmin.PasswordHash = hashedAdminPassword;
             existingAdmin.Role = UserRole.Admin;
             existingAdmin.IsActive = true;
             existingAdmin.IsPhoneVerified = true;
@@ -226,6 +231,8 @@ public class AdminSeedService
 
     private async Task SeedApprovedRestaurantMenusAsync(CancellationToken cancellationToken)
     {
+        var hashedDemoOwnerPassword = _passwordHashService.HashPassword(DemoOwnerSeedPassword);
+
         foreach (var ownerDefinition in MenuOwners)
         {
             var nowUtc = DateTime.UtcNow;
@@ -241,7 +248,7 @@ public class AdminSeedService
                     FullName = ownerDefinition.OwnerName,
                     Username = ownerDefinition.OwnerUsername,
                     PhoneNumber = ownerDefinition.OwnerPhoneNumber,
-                    PasswordHash = _passwordHashService.HashPassword("Owner123!"),
+                    PasswordHash = hashedDemoOwnerPassword,
                     Role = UserRole.RestaurantOwner,
                     IsPhoneVerified = true,
                     IsActive = true,
@@ -256,6 +263,7 @@ public class AdminSeedService
                 owner.FullName = ownerDefinition.OwnerName;
                 owner.Username = ownerDefinition.OwnerUsername;
                 owner.PhoneNumber = ownerDefinition.OwnerPhoneNumber;
+                owner.PasswordHash = hashedDemoOwnerPassword;
                 owner.Role = UserRole.RestaurantOwner;
                 owner.IsPhoneVerified = true;
                 owner.IsActive = true;

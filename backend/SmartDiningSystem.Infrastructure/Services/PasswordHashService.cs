@@ -15,7 +15,23 @@ public class PasswordHashService : IPasswordHashService
 
     public bool VerifyPassword(string hashedPassword, string providedPassword)
     {
-        var result = _passwordHasher.VerifyHashedPassword(PasswordOwner, hashedPassword, providedPassword);
-        return result is PasswordVerificationResult.Success or PasswordVerificationResult.SuccessRehashNeeded;
+        if (string.IsNullOrWhiteSpace(hashedPassword) || string.IsNullOrEmpty(providedPassword))
+        {
+            return false;
+        }
+
+        try
+        {
+            var result = _passwordHasher.VerifyHashedPassword(PasswordOwner, hashedPassword, providedPassword);
+            return result is PasswordVerificationResult.Success or PasswordVerificationResult.SuccessRehashNeeded;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 }
