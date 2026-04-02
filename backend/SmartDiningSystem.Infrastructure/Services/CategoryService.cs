@@ -18,9 +18,9 @@ public class CategoryService : ICategoryService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<MenuCategoryDto>> GetOwnerCategoriesAsync(Guid ownerId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<MenuCategoryDto>> GetOwnerCategoriesAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
         return await _dbContext.MenuCategories
             .AsNoTracking()
@@ -33,10 +33,11 @@ public class CategoryService : ICategoryService
 
     public async Task<MenuCategoryDto> CreateCategoryAsync(
         Guid ownerId,
+        Guid restaurantId,
         CreateCategoryRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var normalizedName = request.Name.Trim();
 
         var nameExists = await _dbContext.MenuCategories
@@ -74,11 +75,12 @@ public class CategoryService : ICategoryService
 
     public async Task<MenuCategoryDto> UpdateCategoryAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid categoryId,
         UpdateCategoryRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var category = await GetOwnedCategoryAsync(restaurant.Id, categoryId, cancellationToken);
         var normalizedName = request.Name.Trim();
 
@@ -109,9 +111,9 @@ public class CategoryService : ICategoryService
         return MapCategoryValue(category, restaurant);
     }
 
-    public async Task DeleteCategoryAsync(Guid ownerId, Guid categoryId, CancellationToken cancellationToken)
+    public async Task DeleteCategoryAsync(Guid ownerId, Guid restaurantId, Guid categoryId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var category = await GetOwnedCategoryAsync(restaurant.Id, categoryId, cancellationToken);
 
         var hasItems = await _dbContext.MenuItems
@@ -132,12 +134,11 @@ public class CategoryService : ICategoryService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
+    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
             .Include(entity => entity.Ratings)
-            .OrderBy(entity => entity.CreatedAtUtc)
-            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
+            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId && entity.Id == restaurantId, cancellationToken);
 
         if (restaurant is null)
         {

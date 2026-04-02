@@ -18,9 +18,9 @@ public class MenuItemService : IMenuItemService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<MenuItemDto>> GetOwnerMenuItemsAsync(Guid ownerId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<MenuItemDto>> GetOwnerMenuItemsAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
         return await _dbContext.MenuItems
             .AsNoTracking()
@@ -33,10 +33,11 @@ public class MenuItemService : IMenuItemService
 
     public async Task<MenuItemDto> CreateMenuItemAsync(
         Guid ownerId,
+        Guid restaurantId,
         CreateMenuItemRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var category = await GetOwnedCategoryAsync(restaurant.Id, request.MenuCategoryId, cancellationToken);
 
         var menuItem = new MenuItem
@@ -61,11 +62,12 @@ public class MenuItemService : IMenuItemService
 
     public async Task<MenuItemDto> UpdateMenuItemAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid menuItemId,
         UpdateMenuItemRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var category = await GetOwnedCategoryAsync(restaurant.Id, request.MenuCategoryId, cancellationToken);
         var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
 
@@ -84,13 +86,14 @@ public class MenuItemService : IMenuItemService
 
     public async Task<MenuItemDto> SetMenuItemHighlightAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid menuItemId,
         SetMenuItemHighlightRequestDto request,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
 
         menuItem.IsHighlighted = true;
@@ -103,10 +106,11 @@ public class MenuItemService : IMenuItemService
 
     public async Task<MenuItemDto> RemoveMenuItemHighlightAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid menuItemId,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
 
         menuItem.IsHighlighted = false;
@@ -119,11 +123,12 @@ public class MenuItemService : IMenuItemService
 
     public async Task<MenuItemDto> ToggleAvailabilityAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid menuItemId,
         ToggleMenuItemAvailabilityRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
 
         if (!menuItem.MenuCategoryId.HasValue)
@@ -145,9 +150,9 @@ public class MenuItemService : IMenuItemService
         return await GetMenuItemDtoAsync(menuItem.Id, restaurant.Id, cancellationToken);
     }
 
-    public async Task DeleteMenuItemAsync(Guid ownerId, Guid menuItemId, CancellationToken cancellationToken)
+    public async Task DeleteMenuItemAsync(Guid ownerId, Guid restaurantId, Guid menuItemId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var menuItem = await GetOwnedMenuItemEntityAsync(restaurant.Id, menuItemId, cancellationToken);
 
         var usedInOrders = await _dbContext.OrderItems
@@ -164,12 +169,11 @@ public class MenuItemService : IMenuItemService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
+    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
             .Include(entity => entity.Ratings)
-            .OrderBy(entity => entity.CreatedAtUtc)
-            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
+            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId && entity.Id == restaurantId, cancellationToken);
 
         if (restaurant is null)
         {

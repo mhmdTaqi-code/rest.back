@@ -1,3 +1,4 @@
+using SmartDiningSystem.Application.Utilities;
 using FluentValidation;
 using SmartDiningSystem.Application.DTOs.Restaurants;
 
@@ -12,6 +13,7 @@ public class CreateOwnerRestaurantRequestDtoValidator : AbstractValidator<Create
             .MaximumLength(200);
 
         RuleFor(request => request.Description)
+            .NotEmpty()
             .MaximumLength(1000);
 
         RuleFor(request => request.Address)
@@ -21,6 +23,9 @@ public class CreateOwnerRestaurantRequestDtoValidator : AbstractValidator<Create
         RuleFor(request => request.ContactPhone)
             .NotEmpty()
             .MaximumLength(50);
+        RuleFor(request => request.ContactPhone)
+            .Must(phoneNumber => IraqiPhoneNumberHelper.TryNormalize(phoneNumber, out _))
+            .WithMessage("Restaurant phone number must be a valid Iraqi mobile number.");
 
         RuleFor(request => request.ImageUrl)
             .MaximumLength(1000)

@@ -18,9 +18,9 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<OwnerActiveOrderDto>> GetActiveOrdersAsync(Guid ownerId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<OwnerActiveOrderDto>> GetActiveOrdersAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
         var orders = await LoadOwnedOrdersQuery(restaurant.Id)
             .Where(order => order.Status != OrderStatus.Served)
@@ -35,22 +35,23 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
             .ToList();
     }
 
-    public async Task<OwnerOrderDetailDto> GetOrderDetailsAsync(Guid ownerId, Guid orderId, CancellationToken cancellationToken)
+    public async Task<OwnerOrderDetailDto> GetOrderDetailsAsync(Guid ownerId, Guid restaurantId, Guid orderId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var order = await GetOwnedOrderAsync(restaurant.Id, orderId, cancellationToken);
         return MapOrderDetail(order, CalculateAverageRating(restaurant), restaurant.Ratings.Count);
     }
 
     public async Task<OwnerOrderDetailDto> UpdateOrderStatusAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid orderId,
         UpdateOrderStatusRequestDto request,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var order = await GetOwnedOrderAsync(restaurant.Id, orderId, cancellationToken, asNoTracking: false);
 
         EnsureOrderHasItems(order);
@@ -77,12 +78,11 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
             .ThenInclude(item => item.MenuItem);
     }
 
-    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
+    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
             .Include(entity => entity.Ratings)
-            .OrderBy(entity => entity.CreatedAtUtc)
-            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
+            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId && entity.Id == restaurantId, cancellationToken);
 
         if (restaurant is null)
         {

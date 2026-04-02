@@ -20,9 +20,9 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyList<RestaurantTableDto>> GetOwnerTablesAsync(Guid ownerId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<RestaurantTableDto>> GetOwnerTablesAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
         return await _dbContext.RestaurantTables
             .AsNoTracking()
@@ -37,10 +37,11 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
 
     public async Task<RestaurantTableDto> CreateTableAsync(
         Guid ownerId,
+        Guid restaurantId,
         CreateRestaurantTableRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
         var tableNumberExists = await _dbContext.RestaurantTables
             .AnyAsync(
@@ -83,10 +84,11 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
 
     public async Task<IReadOnlyList<RestaurantTableDto>> BulkCreateTablesAsync(
         Guid ownerId,
+        Guid restaurantId,
         BulkCreateRestaurantTablesRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var nowUtc = DateTime.UtcNow;
 
         var nextTableNumber = await _dbContext.RestaurantTables
@@ -124,11 +126,12 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
 
     public async Task<RestaurantTableDto> UpdateTableStatusAsync(
         Guid ownerId,
+        Guid restaurantId,
         Guid tableId,
         UpdateRestaurantTableStatusRequestDto request,
         CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var table = await GetOwnedTableAsync(restaurant.Id, tableId, cancellationToken);
 
         table.IsActive = request.IsActive;
@@ -144,9 +147,9 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
             restaurant.Ratings.Count);
     }
 
-    public async Task DeleteTableAsync(Guid ownerId, Guid tableId, CancellationToken cancellationToken)
+    public async Task DeleteTableAsync(Guid ownerId, Guid restaurantId, Guid tableId, CancellationToken cancellationToken)
     {
-        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, cancellationToken);
+        var restaurant = await GetApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
         var table = await GetOwnedTableAsync(restaurant.Id, tableId, cancellationToken);
 
         var hasOrders = await _dbContext.Orders
@@ -171,12 +174,11 @@ public class RestaurantTableManagementService : IRestaurantTableManagementServic
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, CancellationToken cancellationToken)
+    private async Task<Restaurant> GetApprovedOwnerRestaurantAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken)
     {
         var restaurant = await _dbContext.Restaurants
             .Include(entity => entity.Ratings)
-            .OrderBy(entity => entity.CreatedAtUtc)
-            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId, cancellationToken);
+            .FirstOrDefaultAsync(entity => entity.OwnerId == ownerId && entity.Id == restaurantId, cancellationToken);
 
         if (restaurant is null)
         {

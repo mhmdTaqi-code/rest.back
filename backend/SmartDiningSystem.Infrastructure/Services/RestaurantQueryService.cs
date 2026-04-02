@@ -217,38 +217,6 @@ public class RestaurantQueryService : IRestaurantQueryService
             })
             .ToListAsync(cancellationToken);
     }
-
-    public async Task<OwnerRestaurantStatusDto> GetOwnerRestaurantStatusAsync(Guid ownerId, CancellationToken cancellationToken)
-    {
-        var restaurant = await _dbContext.Restaurants
-            .AsNoTracking()
-            .Where(entity => entity.OwnerId == ownerId)
-            .OrderBy(entity => entity.CreatedAtUtc)
-            .Select(entity => new OwnerRestaurantStatusDto
-            {
-                RestaurantId = entity.Id,
-                RestaurantName = entity.Name,
-                ImageUrl = entity.ImageUrl,
-                Latitude = entity.Latitude,
-                Longitude = entity.Longitude,
-                ApprovalStatus = entity.ApprovalStatus.ToString(),
-                RejectionReason = entity.RejectionReason,
-                CreatedAtUtc = entity.CreatedAtUtc,
-                ApprovedAtUtc = entity.ApprovedAtUtc,
-                RejectedAtUtc = entity.RejectedAtUtc,
-                AverageRating = Math.Round(entity.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
-                TotalRatingsCount = entity.Ratings.Count()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (restaurant is null)
-        {
-            throw new AuthServiceException("Restaurant was not found for this owner.", StatusCodes.Status404NotFound);
-        }
-
-        return restaurant;
-    }
-
     private static RestaurantQueryServiceException BuildValidationException(string key, string message)
     {
         return new RestaurantQueryServiceException(

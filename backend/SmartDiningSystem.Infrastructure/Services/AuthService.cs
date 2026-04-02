@@ -332,23 +332,28 @@ public class AuthService : IAuthService
 
     private async Task EnsureRestaurantOwnerCanLoginAsync(Guid ownerId, CancellationToken cancellationToken)
     {
-        var restaurant = await _dbContext.Restaurants
+        var restaurants = await _dbContext.Restaurants
             .AsNoTracking()
             .Where(entity => entity.OwnerId == ownerId)
             .OrderBy(entity => entity.CreatedAtUtc)
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        if (restaurant is null)
+        if (restaurants.Count == 0)
         {
             throw new AuthServiceException(
                 "Restaurant owner access is unavailable because no linked restaurant request was found.",
                 StatusCodes.Status403Forbidden);
         }
 
+        if (restaurants.Any(restaurant => restaurant.ApprovalStatus == RestaurantApprovalStatus.Approved))
+        {
+            return;
+        }
+
+        var restaurant = restaurants[0];
+
         switch (restaurant.ApprovalStatus)
         {
-            case RestaurantApprovalStatus.Approved:
-                return;
             case RestaurantApprovalStatus.Pending:
                 throw new AuthServiceException(
                     "Your restaurant request is under review.",
