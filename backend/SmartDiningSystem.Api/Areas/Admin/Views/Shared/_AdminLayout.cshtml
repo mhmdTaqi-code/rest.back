@@ -10,6 +10,7 @@
 <body class="admin-body">
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var adminPage = ViewData["AdminPage"]?.ToString() ?? currentController;
     }
     <div class="container-fluid px-0">
         <div class="row g-0 min-vh-100">
@@ -20,10 +21,10 @@
                 </div>
 
                 <nav class="nav flex-column gap-2">
-                    <a class="nav-link admin-nav__link @(string.Equals(currentController, "Dashboard", StringComparison.OrdinalIgnoreCase) ? "admin-nav__link--active" : null)"
+                    <a class="nav-link admin-nav__link @(string.Equals(adminPage, "Dashboard", StringComparison.OrdinalIgnoreCase) ? "admin-nav__link--active" : null)"
                        asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
-                    <a class="nav-link admin-nav__link @(string.Equals(currentController, "Accounts", StringComparison.OrdinalIgnoreCase) ? "admin-nav__link--active" : null)"
-                       asp-area="Admin" asp-controller="Accounts" asp-action="Index">Accounts</a>
+                    <a class="nav-link admin-nav__link @(string.Equals(adminPage, "Accounts", StringComparison.OrdinalIgnoreCase) ? "admin-nav__link--active" : null)"
+                       asp-area="Admin" asp-controller="Dashboard" asp-action="Index" asp-route-view="accounts">Accounts</a>
                 </nav>
             </aside>
 

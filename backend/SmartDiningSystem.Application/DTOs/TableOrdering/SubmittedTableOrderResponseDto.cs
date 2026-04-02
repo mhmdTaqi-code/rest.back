@@ -5,12 +5,9 @@ public class SubmittedTableOrderResponseDto
     public Guid OrderId { get; set; }
     public Guid UserId { get; set; }
     public Guid RestaurantId { get; set; }
-    public string RestaurantName { get; set; } = string.Empty;
-    public double AverageRating { get; set; }
-    public int TotalRatingsCount { get; set; }
     public Guid RestaurantTableId { get; set; }
     public int TableNumber { get; set; }
-    public string TableToken { get; set; } = string.Empty;
+    public string OrderName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int ItemCount { get; set; }
     public decimal TotalAmount { get; set; }

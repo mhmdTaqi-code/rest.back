@@ -191,6 +191,23 @@
     color: #475569;
 }
 
+.admin-accounts-table th,
+.admin-accounts-table td {
+    vertical-align: middle;
+}
+
+.admin-accounts-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.admin-accounts-table tbody tr:hover {
+    background: rgba(226, 232, 240, 0.35);
+}
+
+.admin-muted-panel {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 23, 42, 0.04));
+}
+
 .modal-content {
     border: 0;
     border-radius: 1rem;

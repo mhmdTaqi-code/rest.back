@@ -25,3 +25,15 @@ C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-ha
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-hard-delete-verify\SmartDiningSystem.Domain.dll
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-hard-delete-verify\SmartDiningSystem.Domain.pdb
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.sourcelink.json
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\bin\Debug\net8.0\SmartDiningSystem.Domain.deps.json
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\bin\Debug\net8.0\SmartDiningSystem.Domain.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\bin\Debug\net8.0\SmartDiningSystem.Domain.pdb
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.AssemblyInfoInputs.cache
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.AssemblyInfo.cs
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.csproj.CoreCompileInputs.cache
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.sourcelink.json
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\refint\SmartDiningSystem.Domain.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.pdb
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\ref\SmartDiningSystem.Domain.dll

@@ -29,3 +29,19 @@ C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-ha
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-hard-delete-verify\SmartDiningSystem.Application.dll
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-hard-delete-verify\SmartDiningSystem.Application.pdb
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.sourcelink.json
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\bin\Debug\net8.0\SmartDiningSystem.Application.deps.json
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\bin\Debug\net8.0\SmartDiningSystem.Application.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\bin\Debug\net8.0\SmartDiningSystem.Application.pdb
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\bin\Debug\net8.0\SmartDiningSystem.Domain.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\bin\Debug\net8.0\SmartDiningSystem.Domain.pdb
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.csproj.AssemblyReference.cache
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.AssemblyInfoInputs.cache
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.AssemblyInfo.cs
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.csproj.CoreCompileInputs.cache
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.sourcelink.json
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDin.87646C3C.Up2Date
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\refint\SmartDiningSystem.Application.dll
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\SmartDiningSystem.Application.pdb
+C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Application\obj\Debug\net8.0\ref\SmartDiningSystem.Application.dll

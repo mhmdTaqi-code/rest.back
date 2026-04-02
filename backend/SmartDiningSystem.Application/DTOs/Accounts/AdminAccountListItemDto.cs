@@ -1,6 +1,6 @@
-namespace SmartDiningSystem.Application.Areas.Admin.Models;
+namespace SmartDiningSystem.Application.DTOs.Accounts;
 
-public class AdminAccountDetailsViewModel
+public class AdminAccountListItemDto
 {
     public Guid Id { get; set; }
     public string FullName { get; set; } = string.Empty;
@@ -9,8 +9,6 @@ public class AdminAccountDetailsViewModel
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool IsPhoneVerified { get; set; }
-    public string? RestaurantName { get; set; }
     public string? RestaurantApprovalStatus { get; set; }
-    public string? RestaurantRejectionReason { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }

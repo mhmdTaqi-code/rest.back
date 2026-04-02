@@ -3,14 +3,14 @@ using SmartDiningSystem.Application.DTOs.TableOrdering;
 
 namespace SmartDiningSystem.Application.Validation.TableOrdering;
 
-public class AddCartItemRequestDtoValidator : AbstractValidator<AddCartItemRequestDto>
+public class SubmitTableOrderItemRequestDtoValidator : AbstractValidator<SubmitTableOrderItemRequestDto>
 {
-    public AddCartItemRequestDtoValidator()
+    public SubmitTableOrderItemRequestDtoValidator()
     {
-        RuleFor(request => request.MenuItemId)
+        RuleFor(item => item.MenuItemId)
             .NotEmpty();
 
-        RuleFor(request => request.Quantity)
+        RuleFor(item => item.Quantity)
             .GreaterThan(0)
             .LessThanOrEqualTo(99);
     }

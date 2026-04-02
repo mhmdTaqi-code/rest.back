@@ -85,12 +85,6 @@ public static class PostgresConnectionStringResolver
             connectionStringBuilder.SslMode = sslMode;
         }
 
-        if (queryParameters.TryGetValue("trustservercertificate", out var trustServerCertificateValue)
-            && bool.TryParse(trustServerCertificateValue.ToString(), out var trustServerCertificate))
-        {
-            connectionStringBuilder.TrustServerCertificate = trustServerCertificate;
-        }
-
         return connectionStringBuilder.ConnectionString;
     }
 

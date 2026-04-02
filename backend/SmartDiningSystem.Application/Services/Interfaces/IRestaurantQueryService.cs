@@ -14,5 +14,4 @@ public interface IRestaurantQueryService
         GetRestaurantMenuQueryDto query,
         CancellationToken cancellationToken);
 
-    Task<OwnerRestaurantStatusDto> GetOwnerRestaurantStatusAsync(Guid ownerId, CancellationToken cancellationToken);
 }

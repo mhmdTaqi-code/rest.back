@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using SmartDiningSystem.Application.Areas.Admin.Models;
-using SmartDiningSystem.Infrastructure.Data;
-using SmartDiningSystem.Domain.Entities;
-using SmartDiningSystem.Domain.Enums;
+using SmartDiningSystem.Application.DTOs.Accounts;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
+using SmartDiningSystem.Domain.Entities;
+using SmartDiningSystem.Domain.Enums;
+using SmartDiningSystem.Infrastructure.Data;
 
 namespace SmartDiningSystem.Infrastructure.Services;
 
@@ -19,7 +19,7 @@ public class AdminAccountService : IAdminAccountService
         _passwordHashService = passwordHashService;
     }
 
-    public async Task<AdminAccountsIndexViewModel> GetAccountsAsync(
+    public async Task<IReadOnlyList<AdminAccountListItemDto>> GetAccountsAsync(
         string? searchTerm,
         string? role,
         CancellationToken cancellationToken)
@@ -45,16 +45,14 @@ public class AdminAccountService : IAdminAccountService
                 EF.Functions.ILike(row.Account.PhoneNumber, $"%{term}%"));
         }
 
-        UserRole? roleFilter = null;
         if (!string.IsNullOrWhiteSpace(role) && TryParseVisibleRole(role, out var parsedRole))
         {
-            roleFilter = parsedRole;
             query = query.Where(row => row.Account.Role == parsedRole);
         }
 
-        var accounts = await query
+        return await query
             .OrderBy(row => row.Account.FullName)
-            .Select(row => new AdminAccountListItemViewModel
+            .Select(row => new AdminAccountListItemDto
             {
                 Id = row.Account.Id,
                 FullName = row.Account.FullName,
@@ -67,127 +65,26 @@ public class AdminAccountService : IAdminAccountService
                 CreatedAtUtc = row.Account.CreatedAtUtc
             })
             .ToListAsync(cancellationToken);
-
-        return new AdminAccountsIndexViewModel
-        {
-            SearchTerm = searchTerm?.Trim(),
-            SelectedRole = roleFilter?.ToString(),
-            RoleOptions = BuildRoleOptions(roleFilter?.ToString()),
-            Accounts = accounts
-        };
     }
 
-    public async Task<AdminAccountDetailsViewModel> GetAccountDetailsAsync(Guid accountId, CancellationToken cancellationToken)
+    public async Task<AccountMutationResultDto> CreateAccountAsync(
+        SaveAdminAccountRequestDto request,
+        CancellationToken cancellationToken)
     {
-        var account = await _dbContext.UserAccounts
-            .AsNoTracking()
-            .VisibleToAdminUi()
-            .Where(user => user.Id == accountId)
-            .Select(user => new
-            {
-                Account = user,
-                LinkedRestaurant = user.OwnedRestaurants
-                    .OrderBy(restaurant => restaurant.CreatedAtUtc)
-                    .Select(restaurant => new
-                    {
-                        restaurant.Name,
-                        ApprovalStatus = restaurant.ApprovalStatus.ToString(),
-                        restaurant.RejectionReason
-                    })
-                    .FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var effectiveRequest = ApplyCreateDefaults(request);
+        await ValidateRequestAsync(effectiveRequest, null, cancellationToken);
 
-        if (account is null)
-        {
-            throw new AdminAccountServiceException("Account not found.", isNotFound: true);
-        }
-
-        return new AdminAccountDetailsViewModel
-        {
-            Id = account.Account.Id,
-            FullName = account.Account.FullName,
-            Username = account.Account.Username,
-            PhoneNumber = account.Account.PhoneNumber,
-            Role = account.Account.Role.ToString(),
-            IsActive = account.Account.IsActive,
-            IsPhoneVerified = account.Account.IsPhoneVerified,
-            RestaurantName = account.LinkedRestaurant?.Name,
-            RestaurantApprovalStatus = account.LinkedRestaurant?.ApprovalStatus,
-            RestaurantRejectionReason = account.LinkedRestaurant?.RejectionReason,
-            CreatedAtUtc = account.Account.CreatedAtUtc
-        };
-    }
-
-    public Task<AdminAccountFormViewModel> GetCreateModelAsync(CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        return Task.FromResult(new AdminAccountFormViewModel
-        {
-            IsActive = true,
-            IsPhoneVerified = true,
-            Username = string.Empty,
-            Role = UserRole.User.ToString(),
-            RoleOptions = BuildRoleOptions(UserRole.User.ToString()),
-            RestaurantDescription = string.Empty,
-            RestaurantPhoneNumber = string.Empty
-        });
-    }
-
-    public async Task<AdminAccountFormViewModel> GetEditModelAsync(Guid accountId, CancellationToken cancellationToken)
-    {
-        var account = await _dbContext.UserAccounts
-            .AsNoTracking()
-            .VisibleToAdminUi()
-            .FirstOrDefaultAsync(user => user.Id == accountId, cancellationToken);
-
-        if (account is null)
-        {
-            throw new AdminAccountServiceException("Account not found.", isNotFound: true);
-        }
-
-        Restaurant? linkedRestaurant = null;
-        if (account.Role == UserRole.RestaurantOwner)
-        {
-            linkedRestaurant = await _dbContext.Restaurants
-                .AsNoTracking()
-                .OrderBy(restaurant => restaurant.CreatedAtUtc)
-                .FirstOrDefaultAsync(restaurant => restaurant.OwnerId == account.Id, cancellationToken);
-        }
-
-        return new AdminAccountFormViewModel
-        {
-            Id = account.Id,
-            FullName = account.FullName,
-            Username = account.Username,
-            PhoneNumber = account.PhoneNumber ?? string.Empty,
-            Role = account.Role.ToString(),
-            IsActive = account.IsActive,
-            IsPhoneVerified = account.IsPhoneVerified,
-            RoleOptions = BuildRoleOptions(account.Role.ToString()),
-            RestaurantName = linkedRestaurant?.Name,
-            RestaurantDescription = linkedRestaurant?.Description ?? string.Empty,
-            RestaurantAddress = linkedRestaurant?.Address,
-            RestaurantPhoneNumber = account.PhoneNumber
-        };
-    }
-
-    public async Task CreateAccountAsync(AdminAccountFormViewModel model, CancellationToken cancellationToken)
-    {
-        await ValidateModelAsync(model, null, cancellationToken);
-
-        var selectedRole = ParseVisibleRole(model.Role);
+        var selectedRole = ParseVisibleRole(effectiveRequest.Role);
         var account = new UserAccount
         {
             Id = Guid.NewGuid(),
-            FullName = model.FullName.Trim(),
-            PhoneNumber = model.PhoneNumber.Trim(),
-            Username = NormalizeUsername(model.Username),
-            PasswordHash = _passwordHashService.HashPassword(model.Password),
+            FullName = effectiveRequest.FullName!.Trim(),
+            PhoneNumber = effectiveRequest.PhoneNumber!.Trim(),
+            Username = NormalizeUsername(effectiveRequest.Username!),
+            PasswordHash = _passwordHashService.HashPassword(effectiveRequest.Password!),
             Role = selectedRole,
-            IsActive = model.IsActive,
-            IsPhoneVerified = model.IsPhoneVerified,
+            IsActive = effectiveRequest.IsActive ?? true,
+            IsPhoneVerified = effectiveRequest.IsPhoneVerified ?? true,
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow
         };
@@ -196,15 +93,20 @@ public class AdminAccountService : IAdminAccountService
 
         if (selectedRole == UserRole.RestaurantOwner)
         {
-            _dbContext.Restaurants.Add(BuildRestaurant(account.Id, model));
+            _dbContext.Restaurants.Add(BuildRestaurant(account.Id, effectiveRequest));
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new AccountMutationResultDto
+        {
+            Id = account.Id
+        };
     }
 
-    public async Task UpdateAccountAsync(
+    public async Task<AccountMutationResultDto> UpdateAccountAsync(
         Guid accountId,
-        AdminAccountFormViewModel model,
+        SaveAdminAccountRequestDto request,
         Guid? currentAdminUserId,
         CancellationToken cancellationToken)
     {
@@ -217,31 +119,32 @@ public class AdminAccountService : IAdminAccountService
             throw new AdminAccountServiceException("Account not found.", isNotFound: true);
         }
 
-        await ValidateModelAsync(model, accountId, cancellationToken);
-        await EnforceAdminSafetyRulesAsync(account, model, currentAdminUserId, cancellationToken);
+        var restaurant = await _dbContext.Restaurants
+            .OrderBy(existingRestaurant => existingRestaurant.CreatedAtUtc)
+            .FirstOrDefaultAsync(existingRestaurant => existingRestaurant.OwnerId == account.Id, cancellationToken);
 
-        var selectedRole = ParseVisibleRole(model.Role);
-        account.FullName = model.FullName.Trim();
-        account.PhoneNumber = model.PhoneNumber.Trim();
-        account.Username = NormalizeUsername(model.Username);
+        var effectiveRequest = BuildEffectiveUpdateRequest(account, restaurant, request);
+        await ValidateRequestAsync(effectiveRequest, accountId, cancellationToken);
+        await EnforceAdminSafetyRulesAsync(account, effectiveRequest, currentAdminUserId, cancellationToken);
+
+        var selectedRole = ParseVisibleRole(effectiveRequest.Role);
+        account.FullName = effectiveRequest.FullName!.Trim();
+        account.PhoneNumber = effectiveRequest.PhoneNumber!.Trim();
+        account.Username = NormalizeUsername(effectiveRequest.Username!);
         account.Role = selectedRole;
-        account.IsActive = model.IsActive;
-        account.IsPhoneVerified = model.IsPhoneVerified;
+        account.IsActive = effectiveRequest.IsActive ?? account.IsActive;
+        account.IsPhoneVerified = effectiveRequest.IsPhoneVerified ?? account.IsPhoneVerified;
         account.UpdatedAtUtc = DateTime.UtcNow;
 
         if (selectedRole == UserRole.RestaurantOwner)
         {
-            var restaurant = await _dbContext.Restaurants
-                .OrderBy(existingRestaurant => existingRestaurant.CreatedAtUtc)
-                .FirstOrDefaultAsync(existingRestaurant => existingRestaurant.OwnerId == account.Id, cancellationToken);
-
             if (restaurant is null)
             {
-                _dbContext.Restaurants.Add(BuildRestaurant(account.Id, model));
+                _dbContext.Restaurants.Add(BuildRestaurant(account.Id, effectiveRequest));
             }
             else
             {
-                UpdateRestaurant(restaurant, model);
+                UpdateRestaurant(restaurant, effectiveRequest);
             }
         }
         else
@@ -257,6 +160,11 @@ public class AdminAccountService : IAdminAccountService
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new AccountMutationResultDto
+        {
+            Id = accountId
+        };
     }
 
     public async Task<string> DeleteAccountAsync(Guid accountId, Guid? currentAdminUserId, CancellationToken cancellationToken)
@@ -311,10 +219,10 @@ public class AdminAccountService : IAdminAccountService
                 "This account cannot be hard-deleted because it is referenced by existing orders.");
         }
 
-        foreach (var restaurant in ownedRestaurants)
+        foreach (var ownedRestaurant in ownedRestaurants)
         {
             var hasRestaurantOrders = await _dbContext.Orders
-                .AnyAsync(order => order.RestaurantId == restaurant.Id, cancellationToken);
+                .AnyAsync(order => order.RestaurantId == ownedRestaurant.Id, cancellationToken);
 
             if (hasRestaurantOrders)
             {
@@ -325,7 +233,7 @@ public class AdminAccountService : IAdminAccountService
             var hasMenuItemOrderHistory = await _dbContext.OrderItems
                 .AnyAsync(orderItem => _dbContext.MenuItems
                     .Where(menuItem => menuItem.Id == orderItem.MenuItemId)
-                    .Any(menuItem => menuItem.RestaurantId == restaurant.Id), cancellationToken);
+                    .Any(menuItem => menuItem.RestaurantId == ownedRestaurant.Id), cancellationToken);
 
             if (hasMenuItemOrderHistory)
             {
@@ -336,7 +244,7 @@ public class AdminAccountService : IAdminAccountService
             var hasTableOrderHistory = await _dbContext.Orders
                 .AnyAsync(order => _dbContext.RestaurantTables
                     .Where(table => table.Id == order.RestaurantTableId)
-                    .Any(table => table.RestaurantId == restaurant.Id), cancellationToken);
+                    .Any(table => table.RestaurantId == ownedRestaurant.Id), cancellationToken);
 
             if (hasTableOrderHistory)
             {
@@ -419,49 +327,6 @@ public class AdminAccountService : IAdminAccountService
         }
     }
 
-    public async Task ActivateAccountAsync(Guid accountId, Guid? currentAdminUserId, CancellationToken cancellationToken)
-    {
-        _ = currentAdminUserId;
-        var account = await FindAccountAsync(accountId, cancellationToken);
-
-        if (account.IsActive)
-        {
-            return;
-        }
-
-        account.IsActive = true;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task DeactivateAccountAsync(Guid accountId, Guid? currentAdminUserId, CancellationToken cancellationToken)
-    {
-        var account = await FindAccountAsync(accountId, cancellationToken);
-
-        if (!account.IsActive)
-        {
-            return;
-        }
-
-        if (currentAdminUserId.HasValue && currentAdminUserId.Value == account.Id)
-        {
-            throw new AdminAccountServiceException("You cannot deactivate the currently signed-in admin account.");
-        }
-
-        if (account.Role == UserRole.Admin)
-        {
-            var activeAdmins = await _dbContext.UserAccounts
-                .CountAsync(user => user.Role == UserRole.Admin && user.IsActive, cancellationToken);
-
-            if (activeAdmins <= 1)
-            {
-                throw new AdminAccountServiceException("You cannot deactivate the last active admin account.");
-            }
-        }
-
-        account.IsActive = false;
-        await _dbContext.SaveChangesAsync(cancellationToken);
-    }
-
     private async Task<UserAccount> FindAccountAsync(Guid accountId, CancellationToken cancellationToken)
     {
         var account = await _dbContext.UserAccounts
@@ -476,46 +341,94 @@ public class AdminAccountService : IAdminAccountService
         return account;
     }
 
-    private async Task ValidateModelAsync(
-        AdminAccountFormViewModel model,
+    private static SaveAdminAccountRequestDto ApplyCreateDefaults(SaveAdminAccountRequestDto request)
+    {
+        return new SaveAdminAccountRequestDto
+        {
+            FullName = request.FullName,
+            PhoneNumber = request.PhoneNumber,
+            Username = request.Username,
+            Password = request.Password,
+            ConfirmPassword = request.ConfirmPassword,
+            Role = request.Role,
+            IsActive = request.IsActive ?? true,
+            IsPhoneVerified = request.IsPhoneVerified ?? true,
+            RestaurantName = request.RestaurantName,
+            RestaurantDescription = request.RestaurantDescription,
+            RestaurantAddress = request.RestaurantAddress
+        };
+    }
+
+    private static SaveAdminAccountRequestDto BuildEffectiveUpdateRequest(
+        UserAccount account,
+        Restaurant? restaurant,
+        SaveAdminAccountRequestDto request)
+    {
+        return new SaveAdminAccountRequestDto
+        {
+            FullName = request.FullName?.Trim() ?? account.FullName,
+            PhoneNumber = request.PhoneNumber?.Trim() ?? account.PhoneNumber,
+            Username = request.Username?.Trim() ?? account.Username,
+            Role = request.Role ?? account.Role.ToString(),
+            IsActive = request.IsActive ?? account.IsActive,
+            IsPhoneVerified = request.IsPhoneVerified ?? account.IsPhoneVerified,
+            RestaurantName = request.RestaurantName?.Trim() ?? restaurant?.Name,
+            RestaurantDescription = request.RestaurantDescription?.Trim() ?? restaurant?.Description,
+            RestaurantAddress = request.RestaurantAddress?.Trim() ?? restaurant?.Address
+        };
+    }
+
+    private async Task ValidateRequestAsync(
+        SaveAdminAccountRequestDto request,
         Guid? currentAccountId,
         CancellationToken cancellationToken)
     {
-        if (!TryParseVisibleRole(model.Role, out _))
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.FullName))
         {
-            throw new AdminAccountServiceException(
-                "Validation failed.",
-                errors: new Dictionary<string, string[]>
-                {
-                    [nameof(model.Role)] = ["Please select a valid role."]
-                });
+            errors[nameof(request.FullName)] = ["Full name is required."];
         }
 
-        var errors = new Dictionary<string, string[]>();
-        var normalizedPhone = model.PhoneNumber.Trim();
-        var normalizedUsername = NormalizeUsername(model.Username);
-        var normalizedRestaurantName = string.IsNullOrWhiteSpace(model.RestaurantName) ? null : model.RestaurantName.Trim();
-        var normalizedRestaurantDescription = string.IsNullOrWhiteSpace(model.RestaurantDescription) ? null : model.RestaurantDescription.Trim();
-        var normalizedRestaurantAddress = string.IsNullOrWhiteSpace(model.RestaurantAddress) ? null : model.RestaurantAddress.Trim();
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+        {
+            errors[nameof(request.PhoneNumber)] = ["Phone number is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Username))
+        {
+            errors[nameof(request.Username)] = ["Username is required."];
+        }
+
+        if (!TryParseVisibleRole(request.Role, out _))
+        {
+            errors[nameof(request.Role)] = ["Please select a valid role."];
+        }
+
+        var normalizedPhone = request.PhoneNumber?.Trim() ?? string.Empty;
+        var normalizedUsername = NormalizeUsername(request.Username ?? string.Empty);
+        var normalizedRestaurantName = string.IsNullOrWhiteSpace(request.RestaurantName) ? null : request.RestaurantName.Trim();
+        var normalizedRestaurantDescription = string.IsNullOrWhiteSpace(request.RestaurantDescription) ? null : request.RestaurantDescription.Trim();
+        var normalizedRestaurantAddress = string.IsNullOrWhiteSpace(request.RestaurantAddress) ? null : request.RestaurantAddress.Trim();
 
         if (!currentAccountId.HasValue)
         {
-            if (string.IsNullOrWhiteSpace(model.Password))
+            if (string.IsNullOrWhiteSpace(request.Password))
             {
-                errors[nameof(model.Password)] = ["Password is required when creating an account."];
+                errors[nameof(request.Password)] = ["Password is required when creating an account."];
             }
-            else if (model.Password.Length < 6)
+            else if (request.Password.Length < 6)
             {
-                errors[nameof(model.Password)] = ["Password must be at least 6 characters long."];
+                errors[nameof(request.Password)] = ["Password must be at least 6 characters long."];
             }
 
-            if (string.IsNullOrWhiteSpace(model.ConfirmPassword))
+            if (string.IsNullOrWhiteSpace(request.ConfirmPassword))
             {
-                errors[nameof(model.ConfirmPassword)] = ["Please confirm the password."];
+                errors[nameof(request.ConfirmPassword)] = ["Please confirm the password."];
             }
-            else if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
+            else if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
             {
-                errors[nameof(model.ConfirmPassword)] = ["Confirm password must match the password."];
+                errors[nameof(request.ConfirmPassword)] = ["Confirm password must match the password."];
             }
         }
 
@@ -526,7 +439,7 @@ public class AdminAccountService : IAdminAccountService
 
         if (phoneExists)
         {
-            errors[nameof(model.PhoneNumber)] = ["Another account already uses this phone number."];
+            errors[nameof(request.PhoneNumber)] = ["Another account already uses this phone number."];
         }
 
         var usernameExists = await _dbContext.UserAccounts
@@ -536,24 +449,24 @@ public class AdminAccountService : IAdminAccountService
 
         if (usernameExists)
         {
-            errors[nameof(model.Username)] = ["Another account already uses this username."];
+            errors[nameof(request.Username)] = ["Another account already uses this username."];
         }
 
-        if (TryParseVisibleRole(model.Role, out var selectedRole) && selectedRole == UserRole.RestaurantOwner)
+        if (TryParseVisibleRole(request.Role, out var selectedRole) && selectedRole == UserRole.RestaurantOwner)
         {
             if (string.IsNullOrWhiteSpace(normalizedRestaurantName))
             {
-                errors[nameof(model.RestaurantName)] = ["Restaurant name is required for restaurant owners."];
+                errors[nameof(request.RestaurantName)] = ["Restaurant name is required for restaurant owners."];
             }
 
             if (string.IsNullOrWhiteSpace(normalizedRestaurantDescription))
             {
-                errors[nameof(model.RestaurantDescription)] = ["Restaurant description is required for restaurant owners."];
+                errors[nameof(request.RestaurantDescription)] = ["Restaurant description is required for restaurant owners."];
             }
 
             if (string.IsNullOrWhiteSpace(normalizedRestaurantAddress))
             {
-                errors[nameof(model.RestaurantAddress)] = ["Restaurant address is required for restaurant owners."];
+                errors[nameof(request.RestaurantAddress)] = ["Restaurant address is required for restaurant owners."];
             }
         }
 
@@ -565,17 +478,17 @@ public class AdminAccountService : IAdminAccountService
 
     private async Task EnforceAdminSafetyRulesAsync(
         UserAccount existingAccount,
-        AdminAccountFormViewModel model,
+        SaveAdminAccountRequestDto request,
         Guid? currentAdminUserId,
         CancellationToken cancellationToken)
     {
-        if (!TryParseVisibleRole(model.Role, out var newRole))
+        if (!TryParseVisibleRole(request.Role, out var newRole))
         {
             return;
         }
 
         var isDemotingAdmin = existingAccount.Role == UserRole.Admin && newRole != UserRole.Admin;
-        var isDeactivatingAdmin = existingAccount.Role == UserRole.Admin && existingAccount.IsActive && !model.IsActive;
+        var isDeactivatingAdmin = existingAccount.Role == UserRole.Admin && existingAccount.IsActive && request.IsActive == false;
 
         if (currentAdminUserId.HasValue &&
             currentAdminUserId.Value == existingAccount.Id &&
@@ -597,18 +510,6 @@ public class AdminAccountService : IAdminAccountService
         {
             throw new AdminAccountServiceException("You cannot remove or deactivate the last active admin account.");
         }
-    }
-
-    private static IReadOnlyList<AdminRoleOptionViewModel> BuildRoleOptions(string? selectedRole)
-    {
-        return GetVisibleRoles()
-            .Select(role => new AdminRoleOptionViewModel
-            {
-                Value = role.ToString(),
-                Label = role.ToString(),
-                Selected = string.Equals(role.ToString(), selectedRole, StringComparison.Ordinal)
-            })
-            .ToList();
     }
 
     private static IReadOnlyList<UserRole> GetVisibleRoles()
@@ -642,31 +543,31 @@ public class AdminAccountService : IAdminAccountService
             "Validation failed.",
             errors: new Dictionary<string, string[]>
             {
-                [nameof(AdminAccountFormViewModel.Role)] = ["Please select a valid role."]
+                [nameof(SaveAdminAccountRequestDto.Role)] = ["Please select a valid role."]
             });
     }
 
-    private static Restaurant BuildRestaurant(Guid ownerId, AdminAccountFormViewModel model)
+    private static Restaurant BuildRestaurant(Guid ownerId, SaveAdminAccountRequestDto request)
     {
         return new Restaurant
         {
             Id = Guid.NewGuid(),
             OwnerId = ownerId,
-            Name = model.RestaurantName!.Trim(),
-            Description = model.RestaurantDescription!.Trim(),
-            Address = model.RestaurantAddress!.Trim(),
-            ContactPhone = model.PhoneNumber.Trim(),
+            Name = request.RestaurantName!.Trim(),
+            Description = request.RestaurantDescription!.Trim(),
+            Address = request.RestaurantAddress!.Trim(),
+            ContactPhone = request.PhoneNumber!.Trim(),
             ApprovalStatus = RestaurantApprovalStatus.Pending,
             CreatedAtUtc = DateTime.UtcNow
         };
     }
 
-    private static void UpdateRestaurant(Restaurant restaurant, AdminAccountFormViewModel model)
+    private static void UpdateRestaurant(Restaurant restaurant, SaveAdminAccountRequestDto request)
     {
-        restaurant.Name = model.RestaurantName!.Trim();
-        restaurant.Description = model.RestaurantDescription!.Trim();
-        restaurant.Address = model.RestaurantAddress!.Trim();
-        restaurant.ContactPhone = model.PhoneNumber.Trim();
+        restaurant.Name = request.RestaurantName!.Trim();
+        restaurant.Description = request.RestaurantDescription!.Trim();
+        restaurant.Address = request.RestaurantAddress!.Trim();
+        restaurant.ContactPhone = request.PhoneNumber!.Trim();
     }
 
     private static string NormalizeUsername(string username)

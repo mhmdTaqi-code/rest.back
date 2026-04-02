@@ -118,7 +118,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRestaurantTableManagementService, RestaurantTableManagementService>();
         services.AddScoped<IRestaurantTableAccessService, RestaurantTableAccessService>();
         services.AddScoped<IPublicTableMenuService, PublicTableMenuService>();
-        services.AddScoped<ITableCartService, TableCartService>();
         services.AddScoped<ITableOrderService, TableOrderService>();
         services.AddScoped<ITableReservationService, TableReservationService>();
         services.AddScoped<IOwnerOrderWorkflowService, OwnerOrderWorkflowService>();

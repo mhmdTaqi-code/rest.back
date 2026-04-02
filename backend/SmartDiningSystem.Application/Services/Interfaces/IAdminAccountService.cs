@@ -1,31 +1,23 @@
-using SmartDiningSystem.Application.Areas.Admin.Models;
+using SmartDiningSystem.Application.DTOs.Accounts;
 
 namespace SmartDiningSystem.Application.Services.Interfaces;
 
 public interface IAdminAccountService
 {
-    Task<AdminAccountsIndexViewModel> GetAccountsAsync(
+    Task<IReadOnlyList<AdminAccountListItemDto>> GetAccountsAsync(
         string? searchTerm,
         string? role,
         CancellationToken cancellationToken);
 
-    Task<AdminAccountDetailsViewModel> GetAccountDetailsAsync(Guid accountId, CancellationToken cancellationToken);
+    Task<AccountMutationResultDto> CreateAccountAsync(
+        SaveAdminAccountRequestDto request,
+        CancellationToken cancellationToken);
 
-    Task<AdminAccountFormViewModel> GetCreateModelAsync(CancellationToken cancellationToken);
-
-    Task<AdminAccountFormViewModel> GetEditModelAsync(Guid accountId, CancellationToken cancellationToken);
-
-    Task CreateAccountAsync(AdminAccountFormViewModel model, CancellationToken cancellationToken);
-
-    Task UpdateAccountAsync(
+    Task<AccountMutationResultDto> UpdateAccountAsync(
         Guid accountId,
-        AdminAccountFormViewModel model,
+        SaveAdminAccountRequestDto request,
         Guid? currentAdminUserId,
         CancellationToken cancellationToken);
 
     Task<string> DeleteAccountAsync(Guid accountId, Guid? currentAdminUserId, CancellationToken cancellationToken);
-
-    Task ActivateAccountAsync(Guid accountId, Guid? currentAdminUserId, CancellationToken cancellationToken);
-
-    Task DeactivateAccountAsync(Guid accountId, Guid? currentAdminUserId, CancellationToken cancellationToken);
 }

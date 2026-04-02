@@ -64,23 +64,6 @@ public class RestaurantRatingService : IRestaurantRatingService
                 });
         }
 
-        var hasOrderedFromRestaurant = await _dbContext.Orders
-            .AsNoTracking()
-            .AnyAsync(
-                order => order.UserId == userId && order.RestaurantId == restaurantId,
-                cancellationToken);
-
-        if (!hasOrderedFromRestaurant)
-        {
-            throw new RestaurantRatingServiceException(
-                "You can only rate restaurants you have ordered from.",
-                StatusCodes.Status403Forbidden,
-                new Dictionary<string, string[]>
-                {
-                    ["restaurantId"] = ["Place at least one order from this restaurant before rating it."]
-                });
-        }
-
         var rating = await _dbContext.RestaurantRatings
             .Include(entity => entity.Restaurant)
             .ThenInclude(restaurant => restaurant!.Ratings)
@@ -206,23 +189,45 @@ public class RestaurantRatingService : IRestaurantRatingService
                 });
         }
 
-        var summary = await _dbContext.RestaurantRatings
+        var ratingStats = await _dbContext.RestaurantRatings
             .AsNoTracking()
             .Where(rating => rating.RestaurantId == restaurantId)
             .GroupBy(rating => rating.RestaurantId)
-            .Select(group => new RestaurantRatingSummaryDto
+            .Select(group => new
             {
                 RestaurantId = group.Key,
                 AverageRating = Math.Round(group.Average(rating => (double)rating.Stars), 2),
-                TotalRatingsCount = group.Count()
+                TotalRatingsCount = group.Count(),
+                StarCounts = group
+                    .GroupBy(rating => rating.Stars)
+                    .Select(starGroup => new
+                    {
+                        Stars = starGroup.Key,
+                        Count = starGroup.Count()
+                    })
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return summary ?? new RestaurantRatingSummaryDto
+        if (ratingStats is null)
         {
-            RestaurantId = restaurantId,
-            AverageRating = 0d,
-            TotalRatingsCount = 0
+            return new RestaurantRatingSummaryDto
+            {
+                RestaurantId = restaurantId,
+                AverageRating = 0d,
+                TotalRatingsCount = 0,
+                Distribution = BuildRatingDistribution(Array.Empty<(int Stars, int Count)>(), 0)
+            };
+        }
+
+        return new RestaurantRatingSummaryDto
+        {
+            RestaurantId = ratingStats.RestaurantId,
+            AverageRating = ratingStats.AverageRating,
+            TotalRatingsCount = ratingStats.TotalRatingsCount,
+            Distribution = BuildRatingDistribution(
+                ratingStats.StarCounts.Select(item => (item.Stars, item.Count)),
+                ratingStats.TotalRatingsCount)
         };
     }
 
@@ -336,6 +341,31 @@ public class RestaurantRatingService : IRestaurantRatingService
         }
 
         return $"{parts[0]} {parts[^1][0]}.";
+    }
+
+    private static IReadOnlyList<RestaurantRatingDistributionItemDto> BuildRatingDistribution(
+        IEnumerable<(int Stars, int Count)> starCounts,
+        int totalRatingsCount)
+    {
+        var countsByStars = starCounts.ToDictionary(item => item.Stars, item => item.Count);
+        var distribution = new List<RestaurantRatingDistributionItemDto>(5);
+
+        for (var stars = 5; stars >= 1; stars--)
+        {
+            var count = countsByStars.GetValueOrDefault(stars, 0);
+            var percentage = totalRatingsCount == 0
+                ? 0m
+                : Math.Round((decimal)count / totalRatingsCount * 100m, 2);
+
+            distribution.Add(new RestaurantRatingDistributionItemDto
+            {
+                Stars = stars,
+                Count = count,
+                Percentage = percentage
+            });
+        }
+
+        return distribution;
     }
 
     private static RestaurantRatingServiceException BuildValidationException(string key, string message)
