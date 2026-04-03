@@ -2,8 +2,10 @@ namespace SmartDiningSystem.Domain.Enums;
 
 public enum BookingStatus
 {
-    Reserved = 0,
+    Confirmed = 0,
     CheckedIn = 1,
     Cancelled = 2,
-    Expired = 3
+    NoShow = 3,
+    Pending = 4,
+    Completed = 5
 }

@@ -12,10 +12,13 @@ public class TableSession
     public TableSessionStatus Status { get; set; }
     public DateTime OpenedAtUtc { get; set; }
     public DateTime? ClosedAtUtc { get; set; }
+    public Guid? ClosedByUserAccountId { get; set; }
+    public string? CloseReason { get; set; }
 
     public Restaurant? Restaurant { get; set; }
     public RestaurantTable? RestaurantTable { get; set; }
     public Booking? Booking { get; set; }
     public UserAccount? User { get; set; }
+    public UserAccount? ClosedByUserAccount { get; set; }
     public ICollection<Order> Orders { get; set; } = new List<Order>();
 }

@@ -36,7 +36,7 @@ public class TableSessionOrderService : ITableSessionOrderService
             .Include(entity => entity.RestaurantTable)
             .FirstOrDefaultAsync(entity => entity.Id == sessionId, cancellationToken);
 
-        if (session is null || session.Status != TableSessionStatus.Open)
+        if (session is null || session.Status != TableSessionStatus.Active)
         {
             throw new BookingFlowServiceException(
                 "Active table session was not found.",

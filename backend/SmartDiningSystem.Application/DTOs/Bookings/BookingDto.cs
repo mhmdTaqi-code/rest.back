@@ -13,7 +13,9 @@ public class BookingDto
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public DateTime? CheckedInAtUtc { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
+    public DateTime? NoShowMarkedAtUtc { get; set; }
     public DateTime? ExpiredAtUtc { get; set; }
     public Guid? SessionId { get; set; }
     public IReadOnlyList<BookingItemDto> Items { get; set; } = Array.Empty<BookingItemDto>();

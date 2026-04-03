@@ -35,10 +35,13 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(booking => booking.CheckedInAtUtc)
             .HasConversion<NullableUtcDateTimeConverter>();
 
+        builder.Property(booking => booking.CompletedAtUtc)
+            .HasConversion<NullableUtcDateTimeConverter>();
+
         builder.Property(booking => booking.CancelledAtUtc)
             .HasConversion<NullableUtcDateTimeConverter>();
 
-        builder.Property(booking => booking.ExpiredAtUtc)
+        builder.Property(booking => booking.NoShowMarkedAtUtc)
             .HasConversion<NullableUtcDateTimeConverter>();
 
         builder.HasIndex(booking => booking.UserId);

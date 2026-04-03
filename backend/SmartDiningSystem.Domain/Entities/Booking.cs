@@ -14,8 +14,9 @@ public class Booking
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public DateTime? CheckedInAtUtc { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
-    public DateTime? ExpiredAtUtc { get; set; }
+    public DateTime? NoShowMarkedAtUtc { get; set; }
 
     public UserAccount? User { get; set; }
     public Restaurant? Restaurant { get; set; }

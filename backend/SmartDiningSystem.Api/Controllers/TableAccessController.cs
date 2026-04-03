@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SmartDiningSystem.Application.DTOs.Bookings;
 using SmartDiningSystem.Application.DTOs.Common;
 using SmartDiningSystem.Application.Services.Exceptions;
@@ -18,17 +19,28 @@ public class TableAccessController : ControllerBase
         _bookingService = bookingService;
     }
 
-    [HttpPost("scan")]
+    [HttpGet("scan")]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<TableAccessDecisionDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiSuccessResponseDto<TableAccessDecisionDto>>> Scan(
-        [FromBody] TableAccessScanRequestDto request,
+    public Task<ActionResult<ApiSuccessResponseDto<TableAccessDecisionDto>>> Scan(
+        [FromQuery, BindRequired] Guid tableId,
+        CancellationToken cancellationToken) =>
+        ScanCoreAsync(tableId, cancellationToken);
+
+    private Guid? GetUserId()
+    {
+        var userId = User.FindFirstValue("userId");
+        return Guid.TryParse(userId, out var parsed) ? parsed : null;
+    }
+
+    private async Task<ActionResult<ApiSuccessResponseDto<TableAccessDecisionDto>>> ScanCoreAsync(
+        Guid tableId,
         CancellationToken cancellationToken)
     {
         var userId = GetUserId();
 
         try
         {
-            var decision = await _bookingService.ScanTableAccessAsync(userId, request, cancellationToken);
+            var decision = await _bookingService.ScanTableAccessAsync(userId, tableId, cancellationToken);
             return Ok(new ApiSuccessResponseDto<TableAccessDecisionDto>
             {
                 Message = "Table access evaluated successfully.",
@@ -39,12 +51,6 @@ public class TableAccessController : ControllerBase
         {
             return BuildErrorResponse<TableAccessDecisionDto>(exception);
         }
-    }
-
-    private Guid? GetUserId()
-    {
-        var userId = User.FindFirstValue("userId");
-        return Guid.TryParse(userId, out var parsed) ? parsed : null;
     }
 
     private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(BookingFlowServiceException exception)

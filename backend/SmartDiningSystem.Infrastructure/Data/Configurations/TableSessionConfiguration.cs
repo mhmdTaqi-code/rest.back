@@ -23,10 +23,14 @@ public class TableSessionConfiguration : IEntityTypeConfiguration<TableSession>
         builder.Property(session => session.ClosedAtUtc)
             .HasConversion<NullableUtcDateTimeConverter>();
 
+        builder.Property(session => session.CloseReason)
+            .HasMaxLength(500);
+
         builder.HasIndex(session => session.RestaurantId);
         builder.HasIndex(session => session.RestaurantTableId);
         builder.HasIndex(session => session.BookingId);
         builder.HasIndex(session => session.UserId);
+        builder.HasIndex(session => session.ClosedByUserAccountId);
         builder.HasIndex(session => session.Status);
 
         builder.HasOne(session => session.Restaurant)
@@ -42,6 +46,11 @@ public class TableSessionConfiguration : IEntityTypeConfiguration<TableSession>
         builder.HasOne(session => session.User)
             .WithMany(user => user.TableSessions)
             .HasForeignKey(session => session.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(session => session.ClosedByUserAccount)
+            .WithMany()
+            .HasForeignKey(session => session.ClosedByUserAccountId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(session => session.Orders)
