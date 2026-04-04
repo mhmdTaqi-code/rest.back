@@ -12,8 +12,8 @@ using SmartDiningSystem.Infrastructure.Data;
 namespace SmartDiningSystem.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260402193957_AddBookingSystem")]
-    partial class AddBookingSystem
+    [Migration("20260404083256_RebuildCurrentSchemaBaseline")]
+    partial class RebuildCurrentSchemaBaseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -37,10 +37,13 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<DateTime?>("CheckedInAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("ExpiredAtUtc")
+                    b.Property<DateTime?>("NoShowMarkedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("ReservationTimeUtc")
@@ -239,8 +242,10 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid>("RestaurantTableId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<Guid?>("TableSessionId")
                         .HasColumnType("uuid");
@@ -656,8 +661,15 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid?>("BookingId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTime?>("ClosedAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClosedByUserAccountId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("OpenedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -668,10 +680,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid>("RestaurantTableId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
@@ -679,6 +689,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId");
+
+                    b.HasIndex("ClosedByUserAccountId");
 
                     b.HasIndex("RestaurantId");
 
@@ -986,6 +998,11 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("SmartDiningSystem.Domain.Entities.UserAccount", "ClosedByUserAccount")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SmartDiningSystem.Domain.Entities.Restaurant", "Restaurant")
                         .WithMany("TableSessions")
                         .HasForeignKey("RestaurantId")
@@ -1004,6 +1021,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Booking");
+
+                    b.Navigation("ClosedByUserAccount");
 
                     b.Navigation("Restaurant");
 

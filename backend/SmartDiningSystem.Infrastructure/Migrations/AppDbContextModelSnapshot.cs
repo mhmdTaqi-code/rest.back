@@ -34,10 +34,10 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<DateTime?>("CheckedInAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("CreatedAtUtc")
+                    b.Property<DateTime?>("CompletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("CompletedAtUtc")
+                    b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("NoShowMarkedAtUtc")
@@ -239,8 +239,10 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid>("RestaurantTableId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<Guid?>("TableSessionId")
                         .HasColumnType("uuid");
@@ -656,15 +658,15 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid?>("BookingId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ClosedByUserAccountId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("ClosedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CloseReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                    b.Property<Guid?>("ClosedByUserAccountId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("OpenedAtUtc")
                         .HasColumnType("timestamp with time zone");
