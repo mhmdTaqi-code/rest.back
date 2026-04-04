@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartDiningSystem.Application.DTOs.Orders;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
+using SmartDiningSystem.Application.Utilities;
 using SmartDiningSystem.Domain.Entities;
 using SmartDiningSystem.Domain.Enums;
 using SmartDiningSystem.Infrastructure.Data;
@@ -47,7 +48,7 @@ public class UserOrderTrackingService : IUserOrderTrackingService
                     : 0,
                 TableId = entity.RestaurantTableId,
                 TableNumber = entity.RestaurantTable != null ? entity.RestaurantTable.TableNumber : 0,
-                Status = ToApiStatus(entity.Status),
+                Status = OrderStatusApiMapper.ToApiStatus(entity.Status),
                 CreatedAtUtc = entity.CreatedAtUtc,
                 UpdatedAtUtc = entity.UpdatedAtUtc
             })
@@ -65,22 +66,5 @@ public class UserOrderTrackingService : IUserOrderTrackingService
         }
 
         return order;
-    }
-
-    private static string ToApiStatus(OrderStatus status)
-    {
-        if (status == OrderStatus.Received)
-        {
-            status = OrderStatus.OrderReceived;
-        }
-
-        return status switch
-        {
-            OrderStatus.OrderReceived => "OrderReceived",
-            OrderStatus.Preparing => "Preparing",
-            OrderStatus.Ready => "Ready",
-            OrderStatus.Served => "Served",
-            _ => status.ToString()
-        };
     }
 }

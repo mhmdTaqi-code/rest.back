@@ -96,31 +96,6 @@ public class BookingsController : ControllerBase
         }
     }
 
-    [HttpPost("{bookingId:guid}/check-in")]
-    [ProducesResponseType(typeof(ApiSuccessResponseDto<BookingCheckInResponseDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiSuccessResponseDto<BookingCheckInResponseDto>>> CheckIn(Guid bookingId, CancellationToken cancellationToken)
-    {
-        var userId = GetUserId();
-        if (userId is null)
-        {
-            return Unauthorized(BuildUnauthorizedResponse());
-        }
-
-        try
-        {
-            var result = await _bookingService.CheckInAsync(userId.Value, bookingId, cancellationToken);
-            return Ok(new ApiSuccessResponseDto<BookingCheckInResponseDto>
-            {
-                Message = "Booking checked in successfully.",
-                Data = result
-            });
-        }
-        catch (BookingFlowServiceException exception)
-        {
-            return BuildErrorResponse<BookingCheckInResponseDto>(exception);
-        }
-    }
-
     private Guid? GetUserId()
     {
         var userId = User.FindFirstValue("userId");

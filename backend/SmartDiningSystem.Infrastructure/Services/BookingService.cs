@@ -285,99 +285,6 @@ public class BookingService : IBookingService
         return await GetMyBookingAsync(userId, booking.Id, cancellationToken);
     }
 
-    public async Task<TableAccessDecisionDto> ScanTableAccessAsync(Guid? userId, Guid tableId, CancellationToken cancellationToken)
-    {
-        if (tableId == Guid.Empty)
-        {
-            throw BuildValidationError(
-                "Table id is required.",
-                StatusCodes.Status400BadRequest,
-                "tableId",
-                "Table id is required.");
-        }
-
-        await ExpireOverdueBookingsAsync(cancellationToken);
-
-        var table = await _dbContext.RestaurantTables
-            .AsNoTracking()
-            .Where(entity => entity.Id == tableId)
-            .Select(entity => new
-            {
-                entity.Id,
-                entity.RestaurantId,
-                entity.TableNumber,
-                entity.IsActive,
-                ApprovalStatus = entity.Restaurant != null ? entity.Restaurant.ApprovalStatus : (RestaurantApprovalStatus?)null
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (table is null || table.ApprovalStatus is null || table.ApprovalStatus != RestaurantApprovalStatus.Approved)
-        {
-            throw new BookingFlowServiceException(
-                "Restaurant table was not found.",
-                StatusCodes.Status404NotFound,
-                new Dictionary<string, string[]>
-                {
-                    ["tableId"] = ["The selected table was not found."]
-                });
-        }
-
-        if (!table.IsActive)
-        {
-            return BuildAccessDecision("Blocked", table.Id, table.TableNumber, null, null, false, "This table is currently out of service.");
-        }
-
-        var activeSession = await _dbContext.TableSessions
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                session => session.RestaurantTableId == table.Id && session.Status == TableSessionStatus.Active,
-                cancellationToken);
-
-        if (activeSession is not null)
-        {
-            if (userId.HasValue && activeSession.UserId == userId.Value)
-            {
-                return BuildAccessDecision("MenuAllowed", table.Id, table.TableNumber, activeSession.BookingId, activeSession.Id, true, "You already have an active table session.");
-            }
-
-            return BuildAccessDecision("Blocked", table.Id, table.TableNumber, activeSession.BookingId, activeSession.Id, true, "This table is currently occupied.");
-        }
-
-        var nowUtc = DateTime.UtcNow;
-        var activeBooking = await _dbContext.Bookings
-            .AsNoTracking()
-            .Where(booking =>
-                booking.RestaurantTableId == table.Id &&
-                booking.Status == BookingStatus.Confirmed &&
-                booking.ReservationTimeUtc >= nowUtc.AddMinutes(-BookingExpiryMinutes) &&
-                booking.ReservationTimeUtc <= nowUtc)
-            .OrderBy(booking => booking.ReservationTimeUtc)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (activeBooking is null)
-        {
-            return BuildAccessDecision("MenuAllowed", table.Id, table.TableNumber, null, null, false, "This table is available for menu access.");
-        }
-
-        if (!userId.HasValue)
-        {
-            return BuildAccessDecision("LoginRequired", table.Id, table.TableNumber, activeBooking.Id, null, false, "Log in to continue with this reserved table.");
-        }
-
-        if (activeBooking.UserId != userId.Value)
-        {
-            return BuildAccessDecision("Blocked", table.Id, table.TableNumber, activeBooking.Id, null, false, "This table is reserved for another booking.");
-        }
-
-        var checkInOpensAtUtc = activeBooking.ReservationTimeUtc;
-        if (nowUtc < checkInOpensAtUtc)
-        {
-            return BuildAccessDecision("Blocked", table.Id, table.TableNumber, activeBooking.Id, null, false, "Your booking check-in window has not opened yet.");
-        }
-
-        return BuildAccessDecision("CheckInRequired", table.Id, table.TableNumber, activeBooking.Id, null, false, "Check in to start your table session.");
-    }
-
     public async Task<BookingCheckInResponseDto> CheckInAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken)
     {
         await ExpireOverdueBookingsAsync(cancellationToken);
@@ -1048,27 +955,6 @@ public class BookingService : IBookingService
             BookingStatus.CheckedIn => "Occupied",
             BookingStatus.Confirmed => "Reserved",
             _ => status.ToString()
-        };
-    }
-
-    private static TableAccessDecisionDto BuildAccessDecision(
-        string accessMode,
-        Guid tableId,
-        int tableNumber,
-        Guid? bookingId,
-        Guid? sessionId,
-        bool isCheckedIn,
-        string message)
-    {
-        return new TableAccessDecisionDto
-        {
-            AccessMode = accessMode,
-            TableId = tableId,
-            TableNumber = tableNumber,
-            BookingId = bookingId,
-            SessionId = sessionId,
-            IsCheckedIn = isCheckedIn,
-            Message = message
         };
     }
 

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartDiningSystem.Application.DTOs.Orders;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
+using SmartDiningSystem.Application.Utilities;
 using SmartDiningSystem.Domain.Entities;
 using SmartDiningSystem.Domain.Enums;
 using SmartDiningSystem.Infrastructure.Data;
@@ -62,7 +63,17 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
         order.Status = nextStatus;
         order.UpdatedAtUtc = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        var affectedRows = await _dbContext.SaveChangesAsync(cancellationToken);
+        if (affectedRows <= 0)
+        {
+            throw new OwnerOrderWorkflowServiceException(
+                "Order status update did not persist.",
+                StatusCodes.Status409Conflict,
+                new Dictionary<string, string[]>
+                {
+                    ["orderId"] = ["The selected order could not be updated."]
+                });
+        }
 
         return MapOrderDetail(order, CalculateAverageRating(restaurant), restaurant.Ratings.Count);
     }
@@ -156,16 +167,9 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
 
     private static OrderStatus ParseRequestedStatus(string status)
     {
-        if (string.Equals(status, "OrderReceived", StringComparison.OrdinalIgnoreCase))
+        if (OrderStatusApiMapper.TryParse(status, out var parsedStatus))
         {
-            return OrderStatus.OrderReceived;
-        }
-
-        if (Enum.TryParse<OrderStatus>(status, true, out var parsedStatus))
-        {
-            return parsedStatus == OrderStatus.Received
-                ? OrderStatus.OrderReceived
-                : parsedStatus;
+            return parsedStatus;
         }
 
         throw new OwnerOrderWorkflowServiceException(
@@ -179,8 +183,8 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
 
     private static void EnsureTransitionAllowed(OrderStatus currentStatus, OrderStatus nextStatus)
     {
-        currentStatus = NormalizeStatus(currentStatus);
-        nextStatus = NormalizeStatus(nextStatus);
+        currentStatus = OrderStatusApiMapper.Normalize(currentStatus);
+        nextStatus = OrderStatusApiMapper.Normalize(nextStatus);
 
         if (currentStatus == OrderStatus.Served)
         {
@@ -210,14 +214,9 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
                 StatusCodes.Status400BadRequest,
                 new Dictionary<string, string[]>
                 {
-                    ["status"] = [$"Allowed next status is {ToApiStatus(allowedNextStatus)}."]
+                    ["status"] = [$"Allowed next status is {OrderStatusApiMapper.ToApiStatus(allowedNextStatus)}."]
                 });
         }
-    }
-
-    private static OrderStatus NormalizeStatus(OrderStatus status)
-    {
-        return status == OrderStatus.Received ? OrderStatus.OrderReceived : status;
     }
 
     private static OwnerActiveOrderDto MapActiveOrder(Order order, double averageRating, int totalRatingsCount)
@@ -232,7 +231,7 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
             TableNumber = order.RestaurantTable?.TableNumber ?? 0,
             UserId = order.UserId,
             UserFullName = order.User?.FullName ?? string.Empty,
-            Status = ToApiStatus(order.Status),
+            Status = OrderStatusApiMapper.ToApiStatus(order.Status),
             TotalPrice = order.OrderItems.Sum(item => item.UnitPrice * item.Quantity),
             CreatedAtUtc = order.CreatedAtUtc,
             Items = order.OrderItems.Select(MapItem).ToList()
@@ -252,7 +251,7 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
             UserId = order.UserId,
             UserFullName = order.User?.FullName ?? string.Empty,
             UserPhoneNumber = order.User?.PhoneNumber ?? string.Empty,
-            Status = ToApiStatus(order.Status),
+            Status = OrderStatusApiMapper.ToApiStatus(order.Status),
             TotalPrice = order.OrderItems.Sum(item => item.UnitPrice * item.Quantity),
             CreatedAtUtc = order.CreatedAtUtc,
             UpdatedAtUtc = order.UpdatedAtUtc,
@@ -278,17 +277,4 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
         };
     }
 
-    private static string ToApiStatus(OrderStatus status)
-    {
-        status = NormalizeStatus(status);
-
-        return status switch
-        {
-            OrderStatus.OrderReceived => "OrderReceived",
-            OrderStatus.Preparing => "Preparing",
-            OrderStatus.Ready => "Ready",
-            OrderStatus.Served => "Served",
-            _ => status.ToString()
-        };
-    }
 }

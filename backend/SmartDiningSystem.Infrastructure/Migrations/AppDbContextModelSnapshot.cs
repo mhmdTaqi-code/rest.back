@@ -239,10 +239,8 @@ namespace SmartDiningSystem.Infrastructure.Migrations
                     b.Property<Guid>("RestaurantTableId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("TableSessionId")
                         .HasColumnType("uuid");

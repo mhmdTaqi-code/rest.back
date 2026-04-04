@@ -2,9 +2,9 @@ namespace SmartDiningSystem.Domain.Enums;
 
 public enum OrderStatus
 {
-    OrderReceived = 1,
+    OrderReceived = 0,
     Received = OrderReceived,
-    Preparing = 2,
-    Ready = 3,
-    Served = 4
+    Preparing = 1,
+    Ready = 2,
+    Served = 3
 }

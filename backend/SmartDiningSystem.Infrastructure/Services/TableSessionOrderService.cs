@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartDiningSystem.Application.DTOs.TableOrdering;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
+using SmartDiningSystem.Application.Utilities;
 using SmartDiningSystem.Domain.Entities;
 using SmartDiningSystem.Domain.Enums;
 using SmartDiningSystem.Infrastructure.Data;
@@ -159,7 +160,7 @@ public class TableSessionOrderService : ITableSessionOrderService
             RestaurantTableId = order.RestaurantTableId,
             TableNumber = session.RestaurantTable?.TableNumber ?? 0,
             OrderName = $"Table {session.RestaurantTable?.TableNumber ?? 0}",
-            Status = order.Status.ToString(),
+            Status = OrderStatusApiMapper.ToApiStatus(order.Status),
             ItemCount = order.OrderItems.Sum(item => item.Quantity),
             TotalAmount = totalAmount,
             CreatedAtUtc = order.CreatedAtUtc

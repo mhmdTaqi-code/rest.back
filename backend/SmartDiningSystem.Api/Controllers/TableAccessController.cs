@@ -1,8 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using SmartDiningSystem.Application.DTOs.Bookings;
 using SmartDiningSystem.Application.DTOs.Common;
+using SmartDiningSystem.Application.DTOs.TableAccess;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
 
@@ -12,19 +11,19 @@ namespace SmartDiningSystem.Api.Controllers;
 [Route("api/table-access")]
 public class TableAccessController : ControllerBase
 {
-    private readonly IBookingService _bookingService;
+    private readonly ITableAccessFlowService _tableAccessFlowService;
 
-    public TableAccessController(IBookingService bookingService)
+    public TableAccessController(ITableAccessFlowService tableAccessFlowService)
     {
-        _bookingService = bookingService;
+        _tableAccessFlowService = tableAccessFlowService;
     }
 
-    [HttpGet("scan")]
-    [ProducesResponseType(typeof(ApiSuccessResponseDto<TableAccessDecisionDto>), StatusCodes.Status200OK)]
-    public Task<ActionResult<ApiSuccessResponseDto<TableAccessDecisionDto>>> Scan(
-        [FromQuery, BindRequired] Guid tableId,
+    [HttpPost("scan")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<TableAccessScanResponseDto>), StatusCodes.Status200OK)]
+    public Task<ActionResult<ApiSuccessResponseDto<TableAccessScanResponseDto>>> Scan(
+        [FromBody] TableAccessScanRequestDto request,
         CancellationToken cancellationToken) =>
-        ScanCoreAsync(tableId, cancellationToken);
+        ScanCoreAsync(request, cancellationToken);
 
     private Guid? GetUserId()
     {
@@ -32,24 +31,24 @@ public class TableAccessController : ControllerBase
         return Guid.TryParse(userId, out var parsed) ? parsed : null;
     }
 
-    private async Task<ActionResult<ApiSuccessResponseDto<TableAccessDecisionDto>>> ScanCoreAsync(
-        Guid tableId,
+    private async Task<ActionResult<ApiSuccessResponseDto<TableAccessScanResponseDto>>> ScanCoreAsync(
+        TableAccessScanRequestDto request,
         CancellationToken cancellationToken)
     {
         var userId = GetUserId();
 
         try
         {
-            var decision = await _bookingService.ScanTableAccessAsync(userId, tableId, cancellationToken);
-            return Ok(new ApiSuccessResponseDto<TableAccessDecisionDto>
+            var decision = await _tableAccessFlowService.ProcessScanAsync(userId, request, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<TableAccessScanResponseDto>
             {
-                Message = "Table access evaluated successfully.",
+                Message = decision.Message,
                 Data = decision
             });
         }
         catch (BookingFlowServiceException exception)
         {
-            return BuildErrorResponse<TableAccessDecisionDto>(exception);
+            return BuildErrorResponse<TableAccessScanResponseDto>(exception);
         }
     }
 
