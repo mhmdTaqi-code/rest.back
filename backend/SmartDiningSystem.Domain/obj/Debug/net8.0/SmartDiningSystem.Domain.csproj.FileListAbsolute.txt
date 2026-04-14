@@ -37,3 +37,6 @@ C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartD
 C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\refint\SmartDiningSystem.Domain.dll
 C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\SmartDiningSystem.Domain.pdb
 C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6748330e039a8ace\backend\SmartDiningSystem.Domain\obj\Debug\net8.0\ref\SmartDiningSystem.Domain.dll
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Domain.deps.json
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Domain.dll
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Domain.pdb

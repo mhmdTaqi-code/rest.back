@@ -38,3 +38,7 @@ C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-ha
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-hard-delete-verify\SmartDiningSystem.Infrastructure.dll
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\mainadmin-hard-delete-verify\SmartDiningSystem.Infrastructure.pdb
 C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\backend\SmartDiningSystem.Infrastructure\obj\Debug\net8.0\SmartDiningSystem.Infrastructure.sourcelink.json
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Infrastructure.deps.json
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Infrastructure.runtimeconfig.json
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Infrastructure.dll
+C:\Users\ALI PC\Desktop\New folder (4)\SmartDiningSystem\.buildtemp\cors-verify\SmartDiningSystem.Infrastructure.pdb
