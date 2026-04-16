@@ -14,6 +14,6 @@ public class TableAccessScanResponseDto
     public string? BlockReason { get; set; }
     public bool CanOrder { get; set; }
     public bool OrderCreated { get; set; }
-    public TableAccessOrderSummaryDto? Order { get; set; }
+    public Team10CreatedOrderDto? Order { get; set; }
     public string Message { get; set; } = string.Empty;
 }

@@ -458,17 +458,13 @@ public class TableAccessFlowService : ITableAccessFlowService
             cancellationToken);
     }
 
-    private static TableAccessOrderSummaryDto MapOrder(SubmittedTableOrderResponseDto order)
+    private static Team10CreatedOrderDto MapOrder(SubmittedTableOrderResponseDto order)
     {
-        return new TableAccessOrderSummaryDto
+        return new Team10CreatedOrderDto
         {
             OrderId = order.OrderId,
-            TableNumber = order.TableNumber,
-            OrderName = order.OrderName,
-            Status = order.Status,
-            ItemCount = order.ItemCount,
-            TotalAmount = order.TotalAmount,
-            CreatedAtUtc = order.CreatedAtUtc
+            ItemsCount = order.ItemCount,
+            TotalPrice = order.TotalAmount
         };
     }
 
@@ -484,7 +480,7 @@ public class TableAccessFlowService : ITableAccessFlowService
         string? blockReason,
         bool canOrder,
         bool orderCreated,
-        TableAccessOrderSummaryDto? order,
+        Team10CreatedOrderDto? order,
         string message)
     {
         return new TableAccessScanResponseDto
