@@ -59,6 +59,44 @@ public class UserOrdersController : ControllerBase
         }
     }
 
+    [HttpGet("~/api/orders/my-history")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<UserOrderHistoryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorResponseDto), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiSuccessResponseDto<IReadOnlyList<UserOrderHistoryDto>>>> GetOrderHistory(
+        [FromQuery] Guid? restaurantId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized(new ApiErrorResponseDto
+            {
+                Message = "Unauthorized user context.",
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+
+        try
+        {
+            var orders = await _userOrderTrackingService.GetOrderHistoryAsync(userId.Value, restaurantId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<IReadOnlyList<UserOrderHistoryDto>>
+            {
+                Message = "Order history loaded successfully.",
+                Data = orders
+            });
+        }
+        catch (UserOrderTrackingServiceException exception)
+        {
+            return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+            {
+                Message = exception.Message,
+                Errors = exception.Errors,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
     private Guid? GetUserId()
     {
         var userId = User.FindFirstValue("userId");

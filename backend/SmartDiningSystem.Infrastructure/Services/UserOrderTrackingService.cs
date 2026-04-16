@@ -67,4 +67,58 @@ public class UserOrderTrackingService : IUserOrderTrackingService
 
         return order;
     }
+
+    public async Task<IReadOnlyList<UserOrderHistoryDto>> GetOrderHistoryAsync(Guid userId, Guid? restaurantId, CancellationToken cancellationToken)
+    {
+        if (restaurantId.HasValue)
+        {
+            var restaurantExists = await _dbContext.Restaurants
+                .AnyAsync(r => r.Id == restaurantId.Value, cancellationToken);
+                
+            if (!restaurantExists)
+            {
+                throw new UserOrderTrackingServiceException(
+                    "Restaurant was not found.",
+                    StatusCodes.Status404NotFound,
+                    new Dictionary<string, string[]>
+                    {
+                        ["restaurantId"] = ["The specified restaurant could not be found."]
+                    });
+            }
+        }
+
+        var query = _dbContext.Orders
+            .AsNoTracking()
+            .Where(o => o.UserId == userId);
+
+        if (restaurantId.HasValue)
+        {
+            query = query.Where(o => o.RestaurantId == restaurantId.Value);
+        }
+
+        var orders = await query
+            .OrderByDescending(o => o.CreatedAtUtc)
+            .Select(entity => new UserOrderHistoryDto
+            {
+                OrderId = entity.Id,
+                RestaurantId = entity.RestaurantId,
+                RestaurantName = entity.Restaurant != null ? entity.Restaurant.Name : string.Empty,
+                TableId = entity.RestaurantTableId,
+                TableNumber = entity.RestaurantTable != null ? entity.RestaurantTable.TableNumber : 0,
+                Status = OrderStatusApiMapper.ToApiStatus(entity.Status),
+                TotalAmount = entity.OrderItems.Sum(oi => oi.Quantity * oi.UnitPrice),
+                CreatedAt = entity.CreatedAtUtc,
+                Items = entity.OrderItems.Select(i => new UserOrderHistoryItemDto
+                {
+                    MenuItemId = i.MenuItemId,
+                    MenuItemName = i.MenuItem != null ? i.MenuItem.Name : string.Empty,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    LineTotal = i.Quantity * i.UnitPrice
+                }).ToList()
+            })
+            .ToListAsync(cancellationToken);
+
+        return orders;
+    }
 }

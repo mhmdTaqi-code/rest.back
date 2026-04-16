@@ -11,160 +11,7 @@ public class AdminSeedService
 {
     private const string DevelopmentAdminSeedPassword = "DEV_ADMIN_COOKIE_AUTH_ONLY";
     private const string DemoOwnerSeedPassword = "Owner123!";
-
-    private static readonly SeedOwnerDefinition[] MenuOwners =
-    [
-        new(
-            Guid.Parse("11111111-1111-1111-1111-111111111111"),
-            "Baghdad Grill Owner",
-            "baghdadgrillowner",
-            "9647700000101",
-            Guid.Parse("21111111-1111-1111-1111-111111111111"),
-            "Baghdad Grill House",
-            "Classic Iraqi grill specialties and starters.",
-            "Baghdad, Karrada",
-            "9647700000201",
-            new[]
-            {
-                new SeedCategoryDefinition(
-                    Guid.Parse("31111111-1111-1111-1111-111111111111"),
-                    "Grills",
-                    "Signature grilled dishes.",
-                    1,
-                    new[]
-                    {
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111111"),
-                            "Iraqi Kebab",
-                            "Charcoal grilled minced lamb kebab.",
-                            12000m,
-                            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",
-                            1),
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111112"),
-                            "Chicken Tikka",
-                            "Marinated chicken tikka with spices.",
-                            11000m,
-                            "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398",
-                            2)
-                    }),
-                new SeedCategoryDefinition(
-                    Guid.Parse("31111111-1111-1111-1111-111111111112"),
-                    "Starters",
-                    "Fresh starters and dips.",
-                    2,
-                    new[]
-                    {
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111113"),
-                            "Hummus",
-                            "Creamy hummus served with bread.",
-                            5000m,
-                            "https://images.unsplash.com/photo-1571197119282-7c4b5bdb8e45",
-                            1)
-                    })
-            }),
-        new(
-            Guid.Parse("11111111-1111-1111-1111-111111111112"),
-            "Tigris Pizza Owner",
-            "tigrispizzaowner",
-            "9647700000102",
-            Guid.Parse("21111111-1111-1111-1111-111111111112"),
-            "Tigris Pizza",
-            "Pizza, sides, and casual comfort food.",
-            "Baghdad, Mansour",
-            "9647700000202",
-            new[]
-            {
-                new SeedCategoryDefinition(
-                    Guid.Parse("31111111-1111-1111-1111-111111111121"),
-                    "Pizzas",
-                    "Stone-baked pizzas.",
-                    1,
-                    new[]
-                    {
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111121"),
-                            "Margherita",
-                            "Classic tomato, mozzarella, and basil.",
-                            9000m,
-                            "https://images.unsplash.com/photo-1513104890138-7c749659a591",
-                            1),
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111122"),
-                            "Pepperoni",
-                            "Pepperoni pizza with mozzarella.",
-                            10500m,
-                            "https://images.unsplash.com/photo-1628840042765-356cda07504e",
-                            2)
-                    }),
-                new SeedCategoryDefinition(
-                    Guid.Parse("31111111-1111-1111-1111-111111111122"),
-                    "Sides",
-                    "Light bites and sides.",
-                    2,
-                    new[]
-                    {
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111123"),
-                            "Fries",
-                            "Crispy seasoned french fries.",
-                            3000m,
-                            "https://images.unsplash.com/photo-1573080496219-bb080dd4f877",
-                            1)
-                    })
-            }),
-        new(
-            Guid.Parse("11111111-1111-1111-1111-111111111113"),
-            "Sweet Bite Owner",
-            "sweetbiteowner",
-            "9647700000103",
-            Guid.Parse("21111111-1111-1111-1111-111111111113"),
-            "Sweet Bite",
-            "Desserts, coffee, and sweets.",
-            "Baghdad, Jadriya",
-            "9647700000203",
-            new[]
-            {
-                new SeedCategoryDefinition(
-                    Guid.Parse("31111111-1111-1111-1111-111111111131"),
-                    "Desserts",
-                    "House desserts and bakery items.",
-                    1,
-                    new[]
-                    {
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111131"),
-                            "Cheesecake",
-                            "Creamy cheesecake slice.",
-                            5500m,
-                            "https://images.unsplash.com/photo-1533134242443-d4fd215305ad",
-                            1),
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111132"),
-                            "Brownie",
-                            "Rich chocolate brownie.",
-                            6500m,
-                            "https://images.unsplash.com/photo-1606312619070-d48b4c652a52",
-                            2)
-                    }),
-                new SeedCategoryDefinition(
-                    Guid.Parse("31111111-1111-1111-1111-111111111132"),
-                    "Drinks",
-                    "Coffee and warm drinks.",
-                    2,
-                    new[]
-                    {
-                        new SeedMenuItemDefinition(
-                            Guid.Parse("41111111-1111-1111-1111-111111111133"),
-                            "Espresso",
-                            "Single-shot espresso.",
-                            2500m,
-                            "https://images.unsplash.com/photo-1511920170033-f8396924c348",
-                            1)
-                    })
-            })
-    ];
+    private const string NormalUserSeedPassword = "User123!";
 
     private readonly AppDbContext _dbContext;
     private readonly IPasswordHashService _passwordHashService;
@@ -178,7 +25,15 @@ public class AdminSeedService
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         await SeedAdminAsync(cancellationToken);
+        
+        // Setup massive Iraqi demo data injection sequences
         await SeedApprovedRestaurantMenusAsync(cancellationToken);
+        
+        // Ensure regular user boundaries logically exist to attach histories towards
+        await SeedNormalUsersAsync(cancellationToken);
+        
+        // Create full timeline events utilizing the users + menus
+        await SeedDemoOrderHistoryAsync(cancellationToken);
     }
 
     private async Task SeedAdminAsync(CancellationToken cancellationToken)
@@ -232,8 +87,9 @@ public class AdminSeedService
     private async Task SeedApprovedRestaurantMenusAsync(CancellationToken cancellationToken)
     {
         var hashedDemoOwnerPassword = _passwordHashService.HashPassword(DemoOwnerSeedPassword);
+        var menuOwners = IraqiDemoDataBuilder.GetMenuOwners();
 
-        foreach (var ownerDefinition in MenuOwners)
+        foreach (var ownerDefinition in menuOwners)
         {
             var nowUtc = DateTime.UtcNow;
 
@@ -284,6 +140,9 @@ public class AdminSeedService
                     Address = ownerDefinition.RestaurantAddress,
                     ContactPhone = ownerDefinition.RestaurantPhoneNumber,
                     ApprovalStatus = RestaurantApprovalStatus.Approved,
+                    ImageUrl = ownerDefinition.ImageUrl,
+                    Latitude = ownerDefinition.Latitude,
+                    Longitude = ownerDefinition.Longitude,
                     CreatedAtUtc = nowUtc,
                     ApprovedAtUtc = nowUtc,
                     RejectedAtUtc = null,
@@ -300,6 +159,9 @@ public class AdminSeedService
                 restaurant.Address = ownerDefinition.RestaurantAddress;
                 restaurant.ContactPhone = ownerDefinition.RestaurantPhoneNumber;
                 restaurant.ApprovalStatus = RestaurantApprovalStatus.Approved;
+                restaurant.ImageUrl = ownerDefinition.ImageUrl;
+                restaurant.Latitude = ownerDefinition.Latitude;
+                restaurant.Longitude = ownerDefinition.Longitude;
                 restaurant.ApprovedAtUtc = restaurant.ApprovedAtUtc ?? nowUtc;
                 restaurant.RejectedAtUtc = null;
                 restaurant.RejectionReason = null;
@@ -388,18 +250,119 @@ public class AdminSeedService
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task SeedNormalUsersAsync(CancellationToken cancellationToken)
+    {
+        var hashedUserPassword = _passwordHashService.HashPassword(NormalUserSeedPassword);
+        var nowUtc = DateTime.UtcNow;
+
+        // Generate 15 Active Normal Users
+        for (int i = 1; i <= 15; i++)
+        {
+            var userGuid = Guid.Parse($"33333333-3333-3333-3333-{i:D12}");
+            var phoneNumber = $"9647800000{i:D3}";
+
+            var user = await _dbContext.UserAccounts
+                .FirstOrDefaultAsync(u => u.Id == userGuid, cancellationToken);
+
+            if (user == null)
+            {
+                user = new UserAccount
+                {
+                    Id = userGuid,
+                    FullName = $"Customer {i}",
+                    Username = $"customer{i}",
+                    PhoneNumber = phoneNumber,
+                    PasswordHash = hashedUserPassword,
+                    Role = UserRole.User,
+                    IsActive = true,
+                    IsPhoneVerified = true,
+                    CreatedAtUtc = nowUtc,
+                    UpdatedAtUtc = nowUtc
+                };
+                _dbContext.UserAccounts.Add(user);
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SeedDemoOrderHistoryAsync(CancellationToken cancellationToken)
+    {
+        if (await _dbContext.Orders.AnyAsync(cancellationToken))
+        {
+            return; // Only seed history if no orders exist, preventing infinite spam loops
+        }
+
+        var rng = new Random(500);
+        var restaurants = await _dbContext.Restaurants.Include(r => r.MenuItems).Include(r => r.Tables).ToListAsync(cancellationToken);
+        var users = await _dbContext.UserAccounts.Where(u => u.Role == UserRole.User).ToListAsync(cancellationToken);
+
+        var statuses = new[] { OrderStatus.OrderReceived, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Served };
+
+        foreach (var user in users)
+        {
+            int orderCount = rng.Next(2, 6); // 2 to 5 orders per user
+
+            for (int i = 0; i < orderCount; i++)
+            {
+                var restaurant = restaurants[rng.Next(restaurants.Count)];
+                var table = restaurant.Tables.Count > 0 ? restaurant.Tables.ElementAt(rng.Next(restaurant.Tables.Count)) : null;
+
+                var order = new Order
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    RestaurantId = restaurant.Id,
+                    RestaurantTableId = table?.Id ?? Guid.Empty,
+                    Status = statuses[rng.Next(statuses.Length)],
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-rng.Next(1, 30)).AddHours(rng.Next(-5, 5)),
+                    UpdatedAtUtc = DateTime.UtcNow
+                };
+
+                // Generate 2-4 items for each order organically finding menus from that specific location
+                int itemCount = rng.Next(2, 5);
+                for (int j = 0; j < itemCount && j < restaurant.MenuItems.Count; j++)
+                {
+                    var menuItem = restaurant.MenuItems.ElementAt(rng.Next(restaurant.MenuItems.Count));
+                    int quantity = rng.Next(1, 4);
+
+                    order.OrderItems.Add(new OrderItem
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        MenuItemId = menuItem.Id,
+                        Quantity = quantity,
+                        UnitPrice = menuItem.Price
+                    });
+                }
+
+                if (order.OrderItems.Any())
+                {
+                    _dbContext.Orders.Add(order);
+                }
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task SeedRestaurantTablesAsync(
         Guid restaurantId,
         string restaurantName,
         DateTime nowUtc,
         CancellationToken cancellationToken)
     {
-        for (var tableNumber = 1; tableNumber <= 3; tableNumber++)
+        var rng = new Random(restaurantId.GetHashCode());
+        int tableCount = rng.Next(5, 16); // Randomly 5-15 tables safely distributed
+
+        for (var tableNumber = 1; tableNumber <= tableCount; tableNumber++)
         {
             var existingTable = await _dbContext.RestaurantTables
                 .FirstOrDefaultAsync(
                     table => table.RestaurantId == restaurantId && table.TableNumber == tableNumber,
                     cancellationToken);
+
+            var generatedToken = BuildSeedTableToken(restaurantId, restaurantName, tableNumber);
 
             if (existingTable is null)
             {
@@ -408,8 +371,9 @@ public class AdminSeedService
                     Id = Guid.NewGuid(),
                     RestaurantId = restaurantId,
                     TableNumber = tableNumber,
-                    TableToken = BuildSeedTableToken(restaurantId, restaurantName, tableNumber),
+                    TableToken = generatedToken,
                     IsActive = true,
+                    ImageUrl = "https://images.unsplash.com/photo-1595180058204-6484eb3b55db", // Mock table seating URL
                     CreatedAtUtc = nowUtc,
                     UpdatedAtUtc = nowUtc
                 };
@@ -419,7 +383,7 @@ public class AdminSeedService
             else
             {
                 existingTable.TableToken = string.IsNullOrWhiteSpace(existingTable.TableToken)
-                    ? BuildSeedTableToken(restaurantId, restaurantName, tableNumber)
+                    ? generatedToken
                     : existingTable.TableToken;
                 existingTable.IsActive = true;
                 existingTable.UpdatedAtUtc = nowUtc;
@@ -444,31 +408,4 @@ public class AdminSeedService
         var restaurantKey = restaurantId.ToString("N")[..8];
         return $"{prefix}-{restaurantKey}-table-{tableNumber}";
     }
-
-    private sealed record SeedOwnerDefinition(
-        Guid OwnerId,
-        string OwnerName,
-        string OwnerUsername,
-        string OwnerPhoneNumber,
-        Guid RestaurantId,
-        string RestaurantName,
-        string RestaurantDescription,
-        string RestaurantAddress,
-        string RestaurantPhoneNumber,
-        IReadOnlyList<SeedCategoryDefinition> Categories);
-
-    private sealed record SeedCategoryDefinition(
-        Guid CategoryId,
-        string Name,
-        string? Description,
-        int DisplayOrder,
-        IReadOnlyList<SeedMenuItemDefinition> Items);
-
-    private sealed record SeedMenuItemDefinition(
-        Guid MenuItemId,
-        string Name,
-        string? Description,
-        decimal Price,
-        string ImageUrl,
-        int DisplayOrder);
 }
