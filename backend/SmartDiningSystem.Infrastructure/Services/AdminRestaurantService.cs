@@ -206,4 +206,34 @@ public class AdminRestaurantService : IAdminRestaurantService
 
         return normalizedPhoneNumber;
     }
+
+    public async Task ResetAllTablesGloballyAsync(CancellationToken cancellationToken)
+    {
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        // 1. Reset all table-level physical enablement state globally
+        await _dbContext.RestaurantTables
+            .Where(t => !t.IsActive)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsActive, true), cancellationToken);
+
+        var nowUtc = DateTime.UtcNow;
+
+        // 2. Clear out any active bookings tying up these tables
+        await _dbContext.Bookings
+            .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.CheckedIn)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.Status, BookingStatus.Cancelled)
+                .SetProperty(b => b.CancelledAtUtc, nowUtc)
+                .SetProperty(b => b.UpdatedAtUtc, nowUtc), cancellationToken);
+
+        // 3. Clear out any active sessions blocking ordering mechanisms globally
+        await _dbContext.TableSessions
+            .Where(ts => ts.Status == TableSessionStatus.Active)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(ts => ts.Status, TableSessionStatus.Completed)
+                .SetProperty(ts => ts.ClosedAtUtc, nowUtc)
+                .SetProperty(ts => ts.CloseReason, "Global Testing Reset"), cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+    }
 }

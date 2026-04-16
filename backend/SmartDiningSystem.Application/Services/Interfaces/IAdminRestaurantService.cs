@@ -15,4 +15,6 @@ public interface IAdminRestaurantService
         Guid restaurantId,
         string rejectionReason,
         CancellationToken cancellationToken);
+
+    Task ResetAllTablesGloballyAsync(CancellationToken cancellationToken);
 }
