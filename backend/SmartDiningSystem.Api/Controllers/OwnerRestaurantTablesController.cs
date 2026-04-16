@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SmartDiningSystem.Application.DTOs.Bookings;
 using SmartDiningSystem.Application.DTOs.Common;
 using SmartDiningSystem.Application.DTOs.RestaurantTables;
 using SmartDiningSystem.Application.Services.Exceptions;
@@ -15,7 +16,15 @@ namespace SmartDiningSystem.Api.Controllers;
 public class OwnerRestaurantTablesController : ControllerBase
 {
     private readonly IRestaurantTableManagementService _restaurantTableManagementService;
-    public OwnerRestaurantTablesController(IRestaurantTableManagementService restaurantTableManagementService) => _restaurantTableManagementService = restaurantTableManagementService;
+    private readonly IBookingService _bookingService;
+
+    public OwnerRestaurantTablesController(
+        IRestaurantTableManagementService restaurantTableManagementService,
+        IBookingService bookingService)
+    {
+        _restaurantTableManagementService = restaurantTableManagementService;
+        _bookingService = bookingService;
+    }
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiSuccessResponseDto<IReadOnlyList<RestaurantTableDto>>), StatusCodes.Status200OK)]
@@ -65,4 +74,36 @@ public class OwnerRestaurantTablesController : ControllerBase
     private Guid? GetOwnerId() => Guid.TryParse(User.FindFirstValue("userId"), out var parsed) ? parsed : null;
     private ApiErrorResponseDto BuildUnauthorizedResponse() => new() { Message = "Unauthorized owner context.", TraceId = HttpContext.TraceIdentifier };
     private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(RestaurantTableManagementServiceException exception) => StatusCode(exception.StatusCode, new ApiErrorResponseDto { Message = exception.Message, Errors = exception.Errors, TraceId = HttpContext.TraceIdentifier });
+
+    /// <summary>Releases the active dining session for a table, making it available for future bookings/orders.</summary>
+    [HttpPost("{tableId:guid}/release")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<OwnerTableReleaseResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiSuccessResponseDto<OwnerTableReleaseResponseDto>>> ReleaseTable(
+        Guid restaurantId,
+        Guid tableId,
+        CancellationToken cancellationToken)
+    {
+        var ownerId = GetOwnerId();
+        if (ownerId is null) return Unauthorized(BuildUnauthorizedResponse());
+
+        try
+        {
+            var result = await _bookingService.ReleaseTableAsync(
+                ownerId.Value, restaurantId, tableId, cancellationToken);
+            return Ok(new ApiSuccessResponseDto<OwnerTableReleaseResponseDto>
+            {
+                Message = "Table released successfully.",
+                Data = result
+            });
+        }
+        catch (BookingFlowServiceException exception)
+        {
+            return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+            {
+                Message = exception.Message,
+                Errors = exception.Errors,
+                TraceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
 }

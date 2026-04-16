@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SmartDiningSystem.Application.DTOs.TableAccess;
+using SmartDiningSystem.Application.DTOs.TableAvailability;
 using SmartDiningSystem.Application.DTOs.TableOrdering;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
@@ -12,19 +13,20 @@ namespace SmartDiningSystem.Infrastructure.Services;
 
 public class TableAccessFlowService : ITableAccessFlowService
 {
-    private const int BookingExpiryMinutes = 30;
-
     private readonly AppDbContext _dbContext;
     private readonly BookingService _bookingService;
+    private readonly ITableAvailabilityService _tableAvailabilityService;
     private readonly ITableSessionOrderService _tableSessionOrderService;
 
     public TableAccessFlowService(
         AppDbContext dbContext,
         BookingService bookingService,
+        ITableAvailabilityService tableAvailabilityService,
         ITableSessionOrderService tableSessionOrderService)
     {
         _dbContext = dbContext;
         _bookingService = bookingService;
+        _tableAvailabilityService = tableAvailabilityService;
         _tableSessionOrderService = tableSessionOrderService;
     }
 
@@ -44,13 +46,17 @@ public class TableAccessFlowService : ITableAccessFlowService
                 "Table id is required.");
         }
 
-        await _bookingService.ExpireOverdueBookingsAsync(cancellationToken);
-
-        var table = await LoadTableAsync(request.TableId, cancellationToken);
+        var tableState = await _tableAvailabilityService.GetTableStateAsync(request.TableId, cancellationToken);
+        var table = new TableLookup(
+            tableState.TableId,
+            tableState.RestaurantId,
+            tableState.TableNumber,
+            tableState.IsTableActive,
+            tableState.IsOrderingEnabled);
         var requestedItems = request.Items;
         var hasItems = requestedItems is { Count: > 0 };
 
-        if (!table.IsActive)
+        if (!tableState.IsTableActive || !tableState.IsOrderingEnabled)
         {
             return CreateResponse(
                 table,
@@ -68,15 +74,14 @@ public class TableAccessFlowService : ITableAccessFlowService
                 message: "This table is currently out of service.");
         }
 
-        var activeSession = await LoadActiveSessionAsync(table.Id, cancellationToken);
-        if (activeSession is not null)
+        if (tableState.HasActiveSession)
         {
-            if (!userId.HasValue || activeSession.UserId != userId.Value)
+            if (!userId.HasValue || tableState.ActiveSessionUserId != userId.Value)
             {
                 return CreateResponse(
                     table,
                     bookingId: null,
-                    hasBooking: activeSession.BookingId.HasValue,
+                    hasBooking: tableState.ActiveSessionBookingId.HasValue,
                     isBookingOwner: false,
                     isCheckedIn: false,
                     checkInPerformed: false,
@@ -93,10 +98,10 @@ public class TableAccessFlowService : ITableAccessFlowService
             {
                 return CreateResponse(
                     table,
-                    bookingId: activeSession.BookingId,
-                    hasBooking: activeSession.BookingId.HasValue,
-                    isBookingOwner: activeSession.BookingId.HasValue,
-                    isCheckedIn: activeSession.BookingId.HasValue,
+                    bookingId: tableState.ActiveSessionBookingId,
+                    hasBooking: tableState.ActiveSessionBookingId.HasValue,
+                    isBookingOwner: tableState.ActiveSessionBookingId.HasValue,
+                    isCheckedIn: tableState.ActiveSessionBookingId.HasValue,
                     checkInPerformed: false,
                     requiresLogin: false,
                     isBlocked: false,
@@ -108,14 +113,18 @@ public class TableAccessFlowService : ITableAccessFlowService
             }
 
             await EnsureActiveUserAsync(userId.Value, cancellationToken);
-            var existingSessionOrder = await SubmitOrderAsync(userId.Value, activeSession.Id, requestedItems!, cancellationToken);
+            var existingSessionOrder = await SubmitOrderAsync(
+                userId.Value,
+                tableState.ActiveSessionId!.Value,
+                requestedItems!,
+                cancellationToken);
 
             return CreateResponse(
                 table,
-                bookingId: activeSession.BookingId,
-                hasBooking: activeSession.BookingId.HasValue,
-                isBookingOwner: activeSession.BookingId.HasValue,
-                isCheckedIn: activeSession.BookingId.HasValue,
+                bookingId: tableState.ActiveSessionBookingId,
+                hasBooking: tableState.ActiveSessionBookingId.HasValue,
+                isBookingOwner: tableState.ActiveSessionBookingId.HasValue,
+                isCheckedIn: tableState.ActiveSessionBookingId.HasValue,
                 checkInPerformed: false,
                 requiresLogin: false,
                 isBlocked: false,
@@ -126,8 +135,7 @@ public class TableAccessFlowService : ITableAccessFlowService
                 message: "Order created successfully.");
         }
 
-        var currentBooking = await LoadCurrentConfirmedBookingAsync(table.Id, cancellationToken);
-        if (currentBooking is not null)
+        if (tableState.HasActiveBooking)
         {
             if (!userId.HasValue)
             {
@@ -147,7 +155,7 @@ public class TableAccessFlowService : ITableAccessFlowService
                     message: "Log in to verify this booking and continue.");
             }
 
-            if (currentBooking.UserId != userId.Value)
+            if (tableState.ActiveBookingUserId != userId.Value)
             {
                 return CreateResponse(
                     table,
@@ -165,13 +173,34 @@ public class TableAccessFlowService : ITableAccessFlowService
                     message: "This table is reserved for another booking.");
             }
 
-            var checkInResult = await _bookingService.CheckInAsync(userId.Value, currentBooking.Id, cancellationToken);
+            if (tableState.ReservationTimeUtc > DateTime.UtcNow)
+            {
+                return CreateResponse(
+                    table,
+                    bookingId: tableState.ActiveBookingId,
+                    hasBooking: true,
+                    isBookingOwner: true,
+                    isCheckedIn: false,
+                    checkInPerformed: false,
+                    requiresLogin: false,
+                    isBlocked: false,
+                    blockReason: null,
+                    canOrder: false,
+                    orderCreated: false,
+                    order: null,
+                    message: "Your booking exists for this table, but ordering and check-in are not available yet.");
+            }
+
+            var checkInResult = await _bookingService.CheckInAsync(
+                userId.Value,
+                tableState.ActiveBookingId!.Value,
+                cancellationToken);
 
             if (!hasItems)
             {
                 return CreateResponse(
                     table,
-                    bookingId: currentBooking.Id,
+                    bookingId: tableState.ActiveBookingId,
                     hasBooking: true,
                     isBookingOwner: true,
                     isCheckedIn: true,
@@ -190,7 +219,7 @@ public class TableAccessFlowService : ITableAccessFlowService
 
             return CreateResponse(
                 table,
-                bookingId: currentBooking.Id,
+                bookingId: tableState.ActiveBookingId,
                 hasBooking: true,
                 isBookingOwner: true,
                 isCheckedIn: true,
@@ -202,61 +231,6 @@ public class TableAccessFlowService : ITableAccessFlowService
                 orderCreated: true,
                 order: MapOrder(checkedInOrder),
                 message: "Booking checked in and order created successfully.");
-        }
-
-        var upcomingBooking = await LoadUpcomingConfirmedBookingAsync(table.Id, cancellationToken);
-        if (upcomingBooking is not null)
-        {
-            if (!userId.HasValue)
-            {
-                return CreateResponse(
-                    table,
-                    bookingId: null,
-                    hasBooking: true,
-                    isBookingOwner: false,
-                    isCheckedIn: false,
-                    checkInPerformed: false,
-                    requiresLogin: true,
-                    isBlocked: false,
-                    blockReason: null,
-                    canOrder: false,
-                    orderCreated: false,
-                    order: null,
-                    message: "Log in to verify whether this upcoming booking belongs to you.");
-            }
-
-            if (upcomingBooking.UserId != userId.Value)
-            {
-                return CreateResponse(
-                    table,
-                    bookingId: null,
-                    hasBooking: true,
-                    isBookingOwner: false,
-                    isCheckedIn: false,
-                    checkInPerformed: false,
-                    requiresLogin: false,
-                    isBlocked: true,
-                    blockReason: "Reserved",
-                    canOrder: false,
-                    orderCreated: false,
-                    order: null,
-                    message: "This table is reserved for another booking.");
-            }
-
-            return CreateResponse(
-                table,
-                bookingId: upcomingBooking.Id,
-                hasBooking: true,
-                isBookingOwner: true,
-                isCheckedIn: false,
-                checkInPerformed: false,
-                requiresLogin: false,
-                isBlocked: false,
-                blockReason: null,
-                canOrder: false,
-                orderCreated: false,
-                order: null,
-                message: "Your booking exists for this table, but ordering and check-in are not available yet.");
         }
 
         if (hasItems)
@@ -313,77 +287,6 @@ public class TableAccessFlowService : ITableAccessFlowService
             orderCreated: false,
             order: null,
             message: "This table is available for access and ordering.");
-    }
-
-    private async Task<TableLookup> LoadTableAsync(Guid tableId, CancellationToken cancellationToken)
-    {
-        var table = await _dbContext.RestaurantTables
-            .AsNoTracking()
-            .Where(entity => entity.Id == tableId)
-            .Select(entity => new
-            {
-                entity.Id,
-                entity.RestaurantId,
-                entity.TableNumber,
-                entity.IsActive,
-                ApprovalStatus = entity.Restaurant != null
-                    ? entity.Restaurant.ApprovalStatus
-                    : (RestaurantApprovalStatus?)null
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (table is null || table.ApprovalStatus is null || table.ApprovalStatus != RestaurantApprovalStatus.Approved)
-        {
-            throw new BookingFlowServiceException(
-                "Restaurant table was not found.",
-                StatusCodes.Status404NotFound,
-                new Dictionary<string, string[]>
-                {
-                    ["tableId"] = ["The selected table was not found."]
-                });
-        }
-
-        return new TableLookup(table.Id, table.RestaurantId, table.TableNumber, table.IsActive);
-    }
-
-    private async Task<SessionLookup?> LoadActiveSessionAsync(Guid tableId, CancellationToken cancellationToken)
-    {
-        return await _dbContext.TableSessions
-            .AsNoTracking()
-            .Where(session => session.RestaurantTableId == tableId && session.Status == TableSessionStatus.Active)
-            .OrderByDescending(session => session.OpenedAtUtc)
-            .Select(session => new SessionLookup(session.Id, session.UserId, session.BookingId))
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    private async Task<BookingLookup?> LoadCurrentConfirmedBookingAsync(Guid tableId, CancellationToken cancellationToken)
-    {
-        var nowUtc = DateTime.UtcNow;
-        var reservationWindowStartUtc = nowUtc.AddMinutes(-BookingExpiryMinutes);
-
-        return await _dbContext.Bookings
-            .AsNoTracking()
-            .Where(booking =>
-                booking.RestaurantTableId == tableId &&
-                booking.Status == BookingStatus.Confirmed &&
-                booking.ReservationTimeUtc >= reservationWindowStartUtc &&
-                booking.ReservationTimeUtc <= nowUtc)
-            .OrderBy(booking => booking.ReservationTimeUtc)
-            .Select(booking => new BookingLookup(booking.Id, booking.UserId, booking.ReservationTimeUtc))
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    private async Task<BookingLookup?> LoadUpcomingConfirmedBookingAsync(Guid tableId, CancellationToken cancellationToken)
-    {
-        return await _dbContext.Bookings
-            .AsNoTracking()
-            .Where(booking =>
-                booking.RestaurantTableId == tableId &&
-                booking.Status == BookingStatus.Confirmed &&
-                booking.ReservationTimeUtc > DateTime.UtcNow)
-            .OrderBy(booking => booking.ReservationTimeUtc)
-            .Select(booking => new BookingLookup(booking.Id, booking.UserId, booking.ReservationTimeUtc))
-            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private async Task EnsureActiveUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -485,6 +388,7 @@ public class TableAccessFlowService : ITableAccessFlowService
     {
         return new TableAccessScanResponseDto
         {
+            ResultType = ResolveResultType(requiresLogin, isBlocked, blockReason, hasBooking, canOrder),
             TableId = table.Id,
             TableNumber = table.TableNumber,
             BookingId = bookingId,
@@ -495,11 +399,49 @@ public class TableAccessFlowService : ITableAccessFlowService
             RequiresLogin = requiresLogin,
             IsBlocked = isBlocked,
             BlockReason = blockReason,
+            OccupancyStatus = blockReason switch
+            {
+                "OutOfService" => "OutOfService",
+                "Occupied"     => "Occupied",
+                "Reserved"     => "Reserved",
+                _              => "Available"
+            },
             CanOrder = canOrder,
             OrderCreated = orderCreated,
             Order = order,
             Message = message
         };
+    }
+
+    private static TableAccessScanResultType ResolveResultType(
+        bool requiresLogin,
+        bool isBlocked,
+        string? blockReason,
+        bool hasBooking,
+        bool canOrder)
+    {
+        if (requiresLogin)
+        {
+            return TableAccessScanResultType.Unauthorized;
+        }
+
+        if (string.Equals(blockReason, "Occupied", StringComparison.OrdinalIgnoreCase))
+        {
+            return TableAccessScanResultType.Occupied;
+        }
+
+        if (string.Equals(blockReason, "Reserved", StringComparison.OrdinalIgnoreCase) ||
+            (hasBooking && !canOrder))
+        {
+            return TableAccessScanResultType.Reserved;
+        }
+
+        if (isBlocked)
+        {
+            return TableAccessScanResultType.Blocked;
+        }
+
+        return TableAccessScanResultType.Success;
     }
 
     private static BookingFlowServiceException BuildValidationError(
@@ -517,9 +459,10 @@ public class TableAccessFlowService : ITableAccessFlowService
             });
     }
 
-    private sealed record TableLookup(Guid Id, Guid RestaurantId, int TableNumber, bool IsActive);
-
-    private sealed record SessionLookup(Guid Id, Guid? UserId, Guid? BookingId);
-
-    private sealed record BookingLookup(Guid Id, Guid UserId, DateTime ReservationTimeUtc);
+    private sealed record TableLookup(
+        Guid Id,
+        Guid RestaurantId,
+        int TableNumber,
+        bool IsActive,
+        bool IsOrderingEnabled);
 }

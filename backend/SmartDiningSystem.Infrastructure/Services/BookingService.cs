@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SmartDiningSystem.Application.DTOs.Bookings;
+using SmartDiningSystem.Application.DTOs.TableAvailability;
 using SmartDiningSystem.Application.Services.Exceptions;
 using SmartDiningSystem.Application.Services.Interfaces;
 using SmartDiningSystem.Application.Utilities;
@@ -16,10 +17,12 @@ public class BookingService : IBookingService
     private const int BookingExpiryMinutes = 30;
 
     private readonly AppDbContext _dbContext;
+    private readonly ITableAvailabilityService _tableAvailabilityService;
 
-    public BookingService(AppDbContext dbContext)
+    public BookingService(AppDbContext dbContext, ITableAvailabilityService tableAvailabilityService)
     {
         _dbContext = dbContext;
+        _tableAvailabilityService = tableAvailabilityService;
     }
 
     public async Task<IReadOnlyList<RestaurantTableAvailabilityDto>> GetTableAvailabilityAsync(
@@ -30,7 +33,7 @@ public class BookingService : IBookingService
         ValidateRestaurantId(restaurantId);
         ValidateReservationTimeUtc(reservationTimeUtc);
 
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
 
         var restaurant = await GetApprovedRestaurantAsync(restaurantId, cancellationToken);
         var tables = await _dbContext.RestaurantTables
@@ -75,7 +78,7 @@ public class BookingService : IBookingService
         var reservationTimeUtc = ParseReservationTimeUtc(request.ReservationTime);
         ValidateReservationTimeUtc(reservationTimeUtc, "reservationTime");
 
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
         await EnsureActiveUserAsync(userId, cancellationToken);
 
         var restaurant = await GetApprovedRestaurantAsync(restaurantId, cancellationToken);
@@ -214,7 +217,7 @@ public class BookingService : IBookingService
 
     public async Task<IReadOnlyList<BookingDto>> GetMyBookingsAsync(Guid userId, CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
 
         var bookings = await LoadBookingQuery()
             .Where(booking => booking.UserId == userId)
@@ -226,7 +229,7 @@ public class BookingService : IBookingService
 
     public async Task<BookingDto> GetMyBookingAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
 
         var booking = await LoadBookingQuery()
             .FirstOrDefaultAsync(booking => booking.Id == bookingId && booking.UserId == userId, cancellationToken);
@@ -247,7 +250,7 @@ public class BookingService : IBookingService
 
     public async Task<BookingDto> CancelBookingAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
 
         var booking = await _dbContext.Bookings
             .FirstOrDefaultAsync(entity => entity.Id == bookingId && entity.UserId == userId, cancellationToken);
@@ -287,7 +290,7 @@ public class BookingService : IBookingService
 
     public async Task<BookingCheckInResponseDto> CheckInAsync(Guid userId, Guid bookingId, CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
 
         var booking = await _dbContext.Bookings
             .Include(entity => entity.RestaurantTable)
@@ -452,7 +455,6 @@ public class BookingService : IBookingService
         {
             session.Booking.Status = BookingStatus.Completed;
             session.Booking.CompletedAtUtc ??= nowUtc;
-            session.Booking.UpdatedAtUtc = nowUtc;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -471,11 +473,120 @@ public class BookingService : IBookingService
         };
     }
 
+    public async Task<OwnerTableReleaseResponseDto> ReleaseTableAsync(
+        Guid ownerId,
+        Guid restaurantId,
+        Guid tableId,
+        CancellationToken cancellationToken)
+    {
+        if (restaurantId == Guid.Empty)
+        {
+            throw BuildValidationError(
+                "Restaurant id is required.",
+                StatusCodes.Status400BadRequest,
+                "restaurantId",
+                "Restaurant id is required.");
+        }
+
+        if (tableId == Guid.Empty)
+        {
+            throw BuildValidationError(
+                "Table id is required.",
+                StatusCodes.Status400BadRequest,
+                "tableId",
+                "Table id is required.");
+        }
+
+        var restaurant = await _dbContext.Restaurants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == restaurantId && r.OwnerId == ownerId,
+                cancellationToken);
+
+        if (restaurant is null || restaurant.ApprovalStatus != RestaurantApprovalStatus.Approved)
+        {
+            throw new BookingFlowServiceException(
+                "Restaurant was not found.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    ["restaurantId"] = ["The selected restaurant was not found or does not belong to you."]
+                });
+        }
+
+        var table = await _dbContext.RestaurantTables
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                t => t.Id == tableId && t.RestaurantId == restaurantId,
+                cancellationToken);
+
+        if (table is null)
+        {
+            throw new BookingFlowServiceException(
+                "Table was not found for this restaurant.",
+                StatusCodes.Status404NotFound,
+                new Dictionary<string, string[]>
+                {
+                    ["tableId"] = ["The selected table was not found in this restaurant."]
+                });
+        }
+
+        var preState = await _tableAvailabilityService.GetTableStateAsync(tableId, cancellationToken);
+
+        var session = await _dbContext.TableSessions
+            .Include(s => s.Booking)
+            .FirstOrDefaultAsync(
+                s => s.RestaurantTableId == tableId && s.Status == TableSessionStatus.Active,
+                cancellationToken);
+
+        if (session is null)
+        {
+            throw new BookingFlowServiceException(
+                "This table has no active session to release.",
+                StatusCodes.Status409Conflict,
+                new Dictionary<string, string[]>
+                {
+                    ["tableId"] = ["No active session found for this table."]
+                });
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        session.Status = TableSessionStatus.Completed;
+        session.ClosedAtUtc = nowUtc;
+        session.ClosedByUserAccountId = ownerId;
+        session.CloseReason = "Owner table release";
+
+        if (session.Booking?.Status == BookingStatus.CheckedIn)
+        {
+            session.Booking.Status = BookingStatus.Completed;
+            session.Booking.CompletedAtUtc ??= nowUtc;
+            session.Booking.UpdatedAtUtc = nowUtc;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var postState = await _tableAvailabilityService.GetTableStateAsync(tableId, cancellationToken);
+
+        return new OwnerTableReleaseResponseDto
+        {
+            RestaurantId            = restaurantId,
+            TableId                 = tableId,
+            TableNumber             = table.TableNumber,
+            PreviousOccupancyStatus = preState.Status,
+            NewOccupancyStatus      = postState.Status,
+            ReleasedAtUtc           = nowUtc,
+            ReleasedByUserId        = ownerId,
+            ClosedSessionId         = session.Id,
+            CanAcceptNewBooking     = postState.IsAvailable,
+            CanAcceptOrdering       = postState.IsAvailable
+        };
+    }
+
     public async Task<IReadOnlyList<PublicRestaurantBookingDto>> GetPublicRestaurantBookingsAsync(
         Guid restaurantId,
         CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
         await EnsurePublicApprovedRestaurantExistsAsync(restaurantId, cancellationToken);
 
         var bookings = await _dbContext.Bookings
@@ -503,29 +614,11 @@ public class BookingService : IBookingService
         Guid restaurantId,
         CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
         await EnsurePublicApprovedRestaurantExistsAsync(restaurantId, cancellationToken);
 
-        var liveState = await LoadRestaurantLiveStateAsync(restaurantId, cancellationToken);
-
-        return liveState.Tables.Select(table =>
-        {
-            var booking = liveState.CurrentConfirmedBookings
-                .Where(entity => entity.RestaurantTableId == table.Id)
-                .OrderBy(entity => entity.ReservationTimeUtc)
-                .FirstOrDefault();
-
-            var hasOpenSession = liveState.ActiveSessions.Any(session => session.RestaurantTableId == table.Id);
-            var status = ResolveTableStatus(table.IsActive, hasOpenSession, booking is not null);
-
-            return new PublicRestaurantTableLiveStatusDto
-            {
-                TableId = table.Id,
-                TableNumber = table.TableNumber,
-                Status = status,
-                IsAvailableForNewBooking = table.IsActive && booking is null && !hasOpenSession
-            };
-        }).ToList();
+        var states = await _tableAvailabilityService.GetRestaurantTableStatesAsync(restaurantId, cancellationToken);
+        return states.Select(MapPublicLiveStatus).ToList();
     }
 
     public async Task<IReadOnlyList<OwnerRestaurantBookingDto>> GetOwnerBookingsAsync(
@@ -533,7 +626,7 @@ public class BookingService : IBookingService
         Guid restaurantId,
         CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
         await EnsureApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
         var bookings = await _dbContext.Bookings
@@ -565,58 +658,16 @@ public class BookingService : IBookingService
         Guid restaurantId,
         CancellationToken cancellationToken)
     {
-        await ExpireOverdueBookingsAsync(cancellationToken);
+        await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
         await EnsureApprovedOwnerRestaurantAsync(ownerId, restaurantId, cancellationToken);
 
-        var liveState = await LoadRestaurantLiveStateAsync(restaurantId, cancellationToken);
-
-        return liveState.Tables.Select(table =>
-        {
-            var activeSession = liveState.ActiveSessions
-                .FirstOrDefault(session => session.RestaurantTableId == table.Id);
-
-            var booking = liveState.CurrentConfirmedBookings
-                .Where(entity => entity.RestaurantTableId == table.Id)
-                .OrderBy(entity => entity.ReservationTimeUtc)
-                .FirstOrDefault();
-
-            var currentBooking = activeSession?.Booking ?? booking;
-            var status = ResolveTableStatus(table.IsActive, activeSession is not null, booking is not null);
-
-            return new OwnerRestaurantTableLiveStatusDto
-            {
-                TableId = table.Id,
-                TableNumber = table.TableNumber,
-                Status = status,
-                CurrentBookingId = currentBooking?.Id,
-                CurrentBookingStatus = currentBooking?.Status.ToString(),
-                ReservationTimeUtc = currentBooking?.ReservationTimeUtc
-            };
-        }).ToList();
+        var states = await _tableAvailabilityService.GetRestaurantTableStatesAsync(restaurantId, cancellationToken);
+        return states.Select(MapOwnerLiveStatus).ToList();
     }
 
     internal async Task<int> ExpireOverdueBookingsAsync(CancellationToken cancellationToken)
     {
-        var nowUtc = DateTime.UtcNow;
-        var noShowCutoffUtc = nowUtc.AddMinutes(-BookingExpiryMinutes);
-        var overdueBookings = await _dbContext.Bookings
-            .Where(booking =>
-                booking.Status == BookingStatus.Confirmed &&
-                booking.ReservationTimeUtc < noShowCutoffUtc)
-            .ToListAsync(cancellationToken);
-
-        if (overdueBookings.Count == 0)
-        {
-            return 0;
-        }
-
-        foreach (var booking in overdueBookings)
-        {
-            MarkBookingAsNoShow(booking, nowUtc);
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        return overdueBookings.Count;
+        return await _tableAvailabilityService.ExpireOverdueBookingsAsync(cancellationToken);
     }
 
     private IQueryable<Booking> LoadBookingQuery()
@@ -743,35 +794,6 @@ public class BookingService : IBookingService
         }
     }
 
-    private async Task<RestaurantLiveStateData> LoadRestaurantLiveStateAsync(Guid restaurantId, CancellationToken cancellationToken)
-    {
-        var nowUtc = DateTime.UtcNow;
-        var reservationWindowLowerBoundUtc = nowUtc.AddMinutes(-BookingExpiryMinutes);
-
-        var tables = await _dbContext.RestaurantTables
-            .AsNoTracking()
-            .Where(table => table.RestaurantId == restaurantId)
-            .OrderBy(table => table.TableNumber)
-            .ToListAsync(cancellationToken);
-
-        var activeBookings = await _dbContext.Bookings
-            .AsNoTracking()
-            .Where(booking =>
-                booking.RestaurantId == restaurantId &&
-                booking.Status == BookingStatus.Confirmed &&
-                booking.ReservationTimeUtc >= reservationWindowLowerBoundUtc &&
-                booking.ReservationTimeUtc <= nowUtc)
-            .ToListAsync(cancellationToken);
-
-        var openSessions = await _dbContext.TableSessions
-            .AsNoTracking()
-            .Include(session => session.Booking)
-            .Where(session => session.RestaurantId == restaurantId && session.Status == TableSessionStatus.Active)
-            .ToListAsync(cancellationToken);
-
-        return new RestaurantLiveStateData(tables, activeBookings, openSessions);
-    }
-
     private async Task<HashSet<Guid>> GetBlockedTableIdsForRequestedReservationAsync(
         Guid restaurantId,
         DateTime reservationTimeUtc,
@@ -884,26 +906,6 @@ public class BookingService : IBookingService
         return reservationTimeUtc.AddMinutes(BookingExpiryMinutes);
     }
 
-    private static string ResolveTableStatus(bool isTableActive, bool hasActiveSession, bool hasCurrentConfirmedBooking)
-    {
-        if (!isTableActive)
-        {
-            return "OutOfService";
-        }
-
-        if (hasActiveSession)
-        {
-            return "Occupied";
-        }
-
-        if (hasCurrentConfirmedBooking)
-        {
-            return "Reserved";
-        }
-
-        return "Available";
-    }
-
     private static string? NormalizeCloseReason(string? closeReason)
     {
         return string.IsNullOrWhiteSpace(closeReason)
@@ -948,6 +950,34 @@ public class BookingService : IBookingService
         };
     }
 
+    private static PublicRestaurantTableLiveStatusDto MapPublicLiveStatus(TableAvailabilityStateDto state)
+    {
+        return new PublicRestaurantTableLiveStatusDto
+        {
+            TableId = state.TableId,
+            TableNumber = state.TableNumber,
+            Status = state.Status,
+            IsAvailableForNewBooking = state.IsAvailable,
+            OccupancyStatus = state.Status
+        };
+    }
+
+    private static OwnerRestaurantTableLiveStatusDto MapOwnerLiveStatus(TableAvailabilityStateDto state)
+    {
+        return new OwnerRestaurantTableLiveStatusDto
+        {
+            TableId = state.TableId,
+            TableNumber = state.TableNumber,
+            Status = state.Status,
+            OccupancyStatus = state.Status,
+            CurrentBookingId = state.ActiveSessionBookingId ?? state.ActiveBookingId,
+            CurrentBookingStatus = state.ActiveSessionBookingId.HasValue
+                ? BookingStatus.CheckedIn.ToString()
+                : state.ActiveBookingStatus,
+            ReservationTimeUtc = state.ReservationTimeUtc
+        };
+    }
+
     private static string MapPublicBookingStatus(BookingStatus status)
     {
         return status switch
@@ -973,8 +1003,4 @@ public class BookingService : IBookingService
             });
     }
 
-    private sealed record RestaurantLiveStateData(
-        IReadOnlyList<RestaurantTable> Tables,
-        IReadOnlyList<Booking> CurrentConfirmedBookings,
-        IReadOnlyList<TableSession> ActiveSessions);
 }

@@ -1,7 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace SmartDiningSystem.Application.DTOs.TableAccess;
 
 public class TableAccessScanResponseDto
 {
+    [JsonIgnore]
+    public TableAccessScanResultType ResultType { get; set; } = TableAccessScanResultType.Success;
+
     public Guid TableId { get; set; }
     public int TableNumber { get; set; }
     public Guid? BookingId { get; set; }
@@ -12,6 +17,7 @@ public class TableAccessScanResponseDto
     public bool RequiresLogin { get; set; }
     public bool IsBlocked { get; set; }
     public string? BlockReason { get; set; }
+    public string OccupancyStatus { get; set; } = string.Empty;
     public bool CanOrder { get; set; }
     public bool OrderCreated { get; set; }
     public Team10CreatedOrderDto? Order { get; set; }

@@ -6,4 +6,5 @@ public class PublicRestaurantTableLiveStatusDto
     public int TableNumber { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsAvailableForNewBooking { get; set; }
+    public string OccupancyStatus { get; set; } = string.Empty;
 }

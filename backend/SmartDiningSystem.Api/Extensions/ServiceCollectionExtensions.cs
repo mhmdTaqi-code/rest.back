@@ -117,6 +117,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMenuItemService, MenuItemService>();
         services.AddScoped<IRestaurantTableManagementService, RestaurantTableManagementService>();
         services.AddScoped<IRestaurantTableAccessService, RestaurantTableAccessService>();
+        services.AddScoped<ITableAvailabilityService, TableAvailabilityService>();
         services.AddScoped<BookingService>();
         services.AddScoped<IBookingService>(serviceProvider => serviceProvider.GetRequiredService<BookingService>());
         services.AddScoped<ITableAccessFlowService, TableAccessFlowService>();

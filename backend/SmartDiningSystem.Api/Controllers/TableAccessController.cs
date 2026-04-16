@@ -19,8 +19,12 @@ public class TableAccessController : ControllerBase
     }
 
     [HttpPost("scan")]
-    [ProducesResponseType(typeof(ApiSuccessResponseDto<TableAccessScanResponseDto>), StatusCodes.Status200OK)]
-    public Task<ActionResult<ApiSuccessResponseDto<TableAccessScanResponseDto>>> Scan(
+    [ProducesResponseType(typeof(ApiResponseDto<TableAccessScanResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponseDto<TableAccessScanResponseDto>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponseDto<TableAccessScanResponseDto>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponseDto<TableAccessScanResponseDto>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponseDto<TableAccessScanResponseDto>), StatusCodes.Status409Conflict)]
+    public Task<ActionResult<ApiResponseDto<TableAccessScanResponseDto>>> Scan(
         [FromBody] TableAccessScanRequestDto request,
         CancellationToken cancellationToken) =>
         ScanCoreAsync(request, cancellationToken);
@@ -31,7 +35,7 @@ public class TableAccessController : ControllerBase
         return Guid.TryParse(userId, out var parsed) ? parsed : null;
     }
 
-    private async Task<ActionResult<ApiSuccessResponseDto<TableAccessScanResponseDto>>> ScanCoreAsync(
+    private async Task<ActionResult<ApiResponseDto<TableAccessScanResponseDto>>> ScanCoreAsync(
         TableAccessScanRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -40,25 +44,43 @@ public class TableAccessController : ControllerBase
         try
         {
             var decision = await _tableAccessFlowService.ProcessScanAsync(userId, request, cancellationToken);
-            return Ok(new ApiSuccessResponseDto<TableAccessScanResponseDto>
+            var statusCode = ResolveStatusCode(decision);
+            return StatusCode(statusCode, new ApiResponseDto<TableAccessScanResponseDto>
             {
+                Success = statusCode < StatusCodes.Status400BadRequest,
                 Message = decision.Message,
-                Data = decision
+                Data = decision,
+                Errors = null
             });
         }
         catch (BookingFlowServiceException exception)
         {
-            return BuildErrorResponse<TableAccessScanResponseDto>(exception);
+            return BuildErrorResponse(exception);
         }
     }
 
-    private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(BookingFlowServiceException exception)
+    private static int ResolveStatusCode(TableAccessScanResponseDto decision)
     {
-        return StatusCode(exception.StatusCode, new ApiErrorResponseDto
+        return decision.ResultType switch
         {
+            TableAccessScanResultType.InvalidRequest => StatusCodes.Status400BadRequest,
+            TableAccessScanResultType.Unauthorized => StatusCodes.Status401Unauthorized,
+            TableAccessScanResultType.NotFound => StatusCodes.Status404NotFound,
+            TableAccessScanResultType.Occupied => StatusCodes.Status409Conflict,
+            TableAccessScanResultType.Reserved => StatusCodes.Status409Conflict,
+            TableAccessScanResultType.Blocked => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status200OK
+        };
+    }
+
+    private ActionResult<ApiResponseDto<TableAccessScanResponseDto>> BuildErrorResponse(BookingFlowServiceException exception)
+    {
+        return StatusCode(exception.StatusCode, new ApiResponseDto<TableAccessScanResponseDto>
+        {
+            Success = false,
             Message = exception.Message,
+            Data = null,
             Errors = exception.Errors,
-            TraceId = HttpContext.TraceIdentifier
         });
     }
 }

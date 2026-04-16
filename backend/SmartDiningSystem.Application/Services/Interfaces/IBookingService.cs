@@ -15,4 +15,5 @@ public interface IBookingService
     Task<IReadOnlyList<PublicRestaurantTableLiveStatusDto>> GetPublicRestaurantLiveTableStatusAsync(Guid restaurantId, CancellationToken cancellationToken);
     Task<IReadOnlyList<OwnerRestaurantBookingDto>> GetOwnerBookingsAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken);
     Task<IReadOnlyList<OwnerRestaurantTableLiveStatusDto>> GetOwnerLiveTableStatusAsync(Guid ownerId, Guid restaurantId, CancellationToken cancellationToken);
+    Task<OwnerTableReleaseResponseDto> ReleaseTableAsync(Guid ownerId, Guid restaurantId, Guid tableId, CancellationToken cancellationToken);
 }
