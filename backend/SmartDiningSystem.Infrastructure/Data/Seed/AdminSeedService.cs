@@ -201,6 +201,12 @@ public class AdminSeedService
                     category.IsActive = true;
                 }
 
+                if (category == null || category.Id == Guid.Empty)
+                {
+                    throw new InvalidOperationException(
+                        $"SEED FAILURE: MenuCategory '{categoryDefinition.Name}' for Restaurant '{ownerDefinition.RestaurantName}' (Id: {ownerDefinition.RestaurantId}) could not be resolved or created.");
+                }
+
                 foreach (var itemDefinition in categoryDefinition.Items)
                 {
                     var menuItem = await _dbContext.MenuItems
@@ -218,7 +224,7 @@ public class AdminSeedService
                         {
                             Id = itemDefinition.MenuItemId,
                             RestaurantId = ownerDefinition.RestaurantId,
-                            MenuCategoryId = categoryDefinition.CategoryId,
+                            MenuCategoryId = category.Id,
                             Name = itemDefinition.Name,
                             Description = itemDefinition.Description,
                             Price = itemDefinition.Price,
@@ -233,7 +239,7 @@ public class AdminSeedService
                     else
                     {
                         menuItem.RestaurantId = ownerDefinition.RestaurantId;
-                        menuItem.MenuCategoryId = categoryDefinition.CategoryId;
+                        menuItem.MenuCategoryId = category.Id;
                         menuItem.Name = itemDefinition.Name;
                         menuItem.Description = itemDefinition.Description;
                         menuItem.Price = itemDefinition.Price;
