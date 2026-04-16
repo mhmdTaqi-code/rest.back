@@ -124,6 +124,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITableSessionOrderService, TableSessionOrderService>();
         services.AddScoped<IOwnerOrderWorkflowService, OwnerOrderWorkflowService>();
         services.AddScoped<IUserOrderTrackingService, UserOrderTrackingService>();
+        services.AddScoped<ITeam10OrderTrackingService, Team10OrderTrackingService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddHttpClient<IOtpService, IraqOtpService>((serviceProvider, client) =>
         {
