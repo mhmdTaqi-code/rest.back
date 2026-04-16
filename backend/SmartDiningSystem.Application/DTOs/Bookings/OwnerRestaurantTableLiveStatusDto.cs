@@ -9,4 +9,5 @@ public class OwnerRestaurantTableLiveStatusDto
     public Guid? CurrentBookingId { get; set; }
     public string? CurrentBookingStatus { get; set; }
     public DateTime? ReservationTimeUtc { get; set; }
+    public string? ImageUrl { get; set; }
 }

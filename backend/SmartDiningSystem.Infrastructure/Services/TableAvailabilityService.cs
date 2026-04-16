@@ -37,6 +37,7 @@ public class TableAvailabilityService : ITableAvailabilityService
                 entity.RestaurantId,
                 entity.TableNumber,
                 entity.IsActive,
+                entity.ImageUrl,
                 entity.Restaurant != null
                     ? entity.Restaurant.ApprovalStatus
                     : (RestaurantApprovalStatus?)null))
@@ -108,6 +109,7 @@ public class TableAvailabilityService : ITableAvailabilityService
                 table.RestaurantId,
                 table.TableNumber,
                 table.IsActive,
+                table.ImageUrl,
                 null))
             .ToListAsync(cancellationToken);
 
@@ -210,7 +212,8 @@ public class TableAvailabilityService : ITableAvailabilityService
             ActiveBookingId = activeBooking?.Id,
             ActiveBookingUserId = activeBooking?.UserId,
             ActiveBookingStatus = activeBooking?.Status.ToString(),
-            ReservationTimeUtc = activeBooking?.ReservationTimeUtc
+            ReservationTimeUtc = activeBooking?.ReservationTimeUtc,
+            ImageUrl = table.ImageUrl
         };
     }
 
@@ -254,6 +257,7 @@ public class TableAvailabilityService : ITableAvailabilityService
         Guid RestaurantId,
         int TableNumber,
         bool IsActive,
+        string? ImageUrl,
         RestaurantApprovalStatus? ApprovalStatus);
 
     private sealed record SessionLookup(

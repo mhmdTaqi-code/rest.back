@@ -7,4 +7,5 @@ public class PublicRestaurantTableLiveStatusDto
     public string Status { get; set; } = string.Empty;
     public bool IsAvailableForNewBooking { get; set; }
     public string OccupancyStatus { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
 }

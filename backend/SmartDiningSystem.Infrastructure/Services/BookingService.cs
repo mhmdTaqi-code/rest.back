@@ -958,7 +958,8 @@ public class BookingService : IBookingService
             TableNumber = state.TableNumber,
             Status = state.Status,
             IsAvailableForNewBooking = state.IsAvailable,
-            OccupancyStatus = state.Status
+            OccupancyStatus = state.Status,
+            ImageUrl = state.ImageUrl
         };
     }
 
@@ -974,7 +975,8 @@ public class BookingService : IBookingService
             CurrentBookingStatus = state.ActiveSessionBookingId.HasValue
                 ? BookingStatus.CheckedIn.ToString()
                 : state.ActiveBookingStatus,
-            ReservationTimeUtc = state.ReservationTimeUtc
+            ReservationTimeUtc = state.ReservationTimeUtc,
+            ImageUrl = state.ImageUrl
         };
     }
 

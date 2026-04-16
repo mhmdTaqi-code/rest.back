@@ -17,10 +17,13 @@ builder.Logging.AddDebug();
 builder.Services.AddControllersWithViews();
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+    options.AddPolicy("OpenCors", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -82,7 +85,7 @@ app.UseSwaggerUI();
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseCors();
+app.UseCors("OpenCors");
 app.UseAuthentication();
 app.UseAuthorization();
 

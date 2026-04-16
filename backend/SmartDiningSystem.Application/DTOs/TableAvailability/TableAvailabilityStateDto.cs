@@ -19,4 +19,5 @@ public class TableAvailabilityStateDto
     public Guid? ActiveBookingUserId { get; set; }
     public string? ActiveBookingStatus { get; set; }
     public DateTime? ReservationTimeUtc { get; set; }
+    public string? ImageUrl { get; set; }
 }
