@@ -12,4 +12,5 @@ public interface IOwnerOrderWorkflowService
         Guid orderId,
         UpdateOrderStatusRequestDto request,
         CancellationToken cancellationToken);
+    Task<OwnerOrderCheckoutResponseDto> CheckoutOrderAsync(Guid ownerId, Guid orderId, CancellationToken cancellationToken);
 }

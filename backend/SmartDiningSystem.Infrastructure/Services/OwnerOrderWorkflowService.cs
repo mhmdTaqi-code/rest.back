@@ -78,6 +78,87 @@ public class OwnerOrderWorkflowService : IOwnerOrderWorkflowService
         return MapOrderDetail(order, CalculateAverageRating(restaurant), restaurant.Ratings.Count);
     }
 
+    public async Task<OwnerOrderCheckoutResponseDto> CheckoutOrderAsync(Guid ownerId, Guid orderId, CancellationToken cancellationToken)
+    {
+        var order = await _dbContext.Orders
+            .Include(o => o.Restaurant)
+            .Include(o => o.TableSession)
+            .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+
+        if (order is null)
+        {
+            throw new OwnerOrderWorkflowServiceException(
+                "Order was not found.",
+                StatusCodes.Status404NotFound);
+        }
+
+        if (order.Restaurant?.OwnerId != ownerId)
+        {
+            throw new OwnerOrderWorkflowServiceException(
+                "You do not have permission to access this order.",
+                StatusCodes.Status403Forbidden);
+        }
+
+        if (order.Status == OrderStatus.Served)
+        {
+            throw new OwnerOrderWorkflowServiceException(
+                "Order is already completed.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        order.Status = OrderStatus.Served;
+        order.UpdatedAtUtc = DateTime.UtcNow;
+
+        bool tableReleased = false;
+
+        if (order.RestaurantTableId != Guid.Empty)
+        {
+            var activeSession = order.TableSession ?? await _dbContext.TableSessions
+                .FirstOrDefaultAsync(s => s.RestaurantTableId == order.RestaurantTableId && s.Status == TableSessionStatus.Active, cancellationToken);
+                
+            if (activeSession != null && activeSession.Status == TableSessionStatus.Active)
+            {
+                activeSession.Status = TableSessionStatus.Completed;
+                activeSession.ClosedAtUtc = DateTime.UtcNow;
+                activeSession.CloseReason = "Order Checkout";
+                
+                if (activeSession.BookingId.HasValue)
+                {
+                    var booking = await _dbContext.Bookings.FindAsync(new object[] { activeSession.BookingId.Value }, cancellationToken);
+                    if (booking != null && booking.Status != BookingStatus.Completed && booking.Status != BookingStatus.Cancelled)
+                    {
+                        booking.Status = BookingStatus.Completed;
+                        booking.CompletedAtUtc = DateTime.UtcNow;
+                        booking.UpdatedAtUtc = DateTime.UtcNow;
+                    }
+                }
+            }
+            
+            var activeBookings = await _dbContext.Bookings
+                .Where(b => b.RestaurantTableId == order.RestaurantTableId && (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.CheckedIn))
+                .ToListAsync(cancellationToken);
+                
+            foreach (var b in activeBookings)
+            {
+                b.Status = BookingStatus.Completed;
+                b.CompletedAtUtc = DateTime.UtcNow;
+                b.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            
+            tableReleased = true;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new OwnerOrderCheckoutResponseDto
+        {
+            OrderId = order.Id,
+            TableId = order.RestaurantTableId,
+            OrderStatus = OrderStatusApiMapper.ToApiStatus(order.Status),
+            TableReleased = tableReleased
+        };
+    }
+
     private IQueryable<Order> LoadOwnedOrdersQuery(Guid restaurantId)
     {
         return _dbContext.Orders

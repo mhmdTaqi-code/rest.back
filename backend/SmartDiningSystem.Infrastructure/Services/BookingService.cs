@@ -396,82 +396,6 @@ public class BookingService : IBookingService
         };
     }
 
-    public async Task<OwnerCheckoutTableSessionResponseDto> CheckoutTableSessionAsync(
-        Guid ownerId,
-        Guid sessionId,
-        OwnerCheckoutTableSessionRequestDto request,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        if (sessionId == Guid.Empty)
-        {
-            throw BuildValidationError(
-                "Session id is required.",
-                StatusCodes.Status400BadRequest,
-                "sessionId",
-                "Session id is required.");
-        }
-
-        var session = await _dbContext.TableSessions
-            .Include(entity => entity.Restaurant)
-            .Include(entity => entity.RestaurantTable)
-            .Include(entity => entity.Booking)
-            .FirstOrDefaultAsync(
-                entity => entity.Id == sessionId &&
-                    entity.Restaurant != null &&
-                    entity.Restaurant.OwnerId == ownerId,
-                cancellationToken);
-
-        if (session is null)
-        {
-            throw new BookingFlowServiceException(
-                "Table session was not found for this owner.",
-                StatusCodes.Status404NotFound,
-                new Dictionary<string, string[]>
-                {
-                    ["sessionId"] = ["The selected table session was not found for this owner."]
-                });
-        }
-
-        if (session.Status != TableSessionStatus.Active)
-        {
-            throw new BookingFlowServiceException(
-                "Only active table sessions can be checked out.",
-                StatusCodes.Status400BadRequest,
-                new Dictionary<string, string[]>
-                {
-                    ["sessionId"] = ["The selected table session is already closed."]
-                });
-        }
-
-        var nowUtc = DateTime.UtcNow;
-        session.Status = TableSessionStatus.Completed;
-        session.ClosedAtUtc = nowUtc;
-        session.ClosedByUserAccountId = ownerId;
-        session.CloseReason = NormalizeCloseReason(request.CloseReason);
-
-        if (session.Booking is not null)
-        {
-            session.Booking.Status = BookingStatus.Completed;
-            session.Booking.CompletedAtUtc ??= nowUtc;
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return new OwnerCheckoutTableSessionResponseDto
-        {
-            SessionId = session.Id,
-            BookingId = session.BookingId,
-            RestaurantId = session.RestaurantId,
-            RestaurantTableId = session.RestaurantTableId,
-            TableNumber = session.RestaurantTable?.TableNumber ?? 0,
-            SessionStatus = session.Status.ToString(),
-            BookingStatus = session.Booking?.Status.ToString(),
-            EndedAtUtc = session.ClosedAtUtc ?? nowUtc,
-            CloseReason = session.CloseReason
-        };
-    }
 
     public async Task<OwnerTableReleaseResponseDto> ReleaseTableAsync(
         Guid ownerId,
@@ -906,12 +830,6 @@ public class BookingService : IBookingService
         return reservationTimeUtc.AddMinutes(BookingExpiryMinutes);
     }
 
-    private static string? NormalizeCloseReason(string? closeReason)
-    {
-        return string.IsNullOrWhiteSpace(closeReason)
-            ? null
-            : closeReason.Trim();
-    }
 
     private static BookingDto MapBooking(Booking booking)
     {

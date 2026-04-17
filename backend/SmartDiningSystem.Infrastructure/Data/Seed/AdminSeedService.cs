@@ -24,6 +24,8 @@ public class AdminSeedService
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
+        await WipeApplicationDataAsync(cancellationToken);
+
         await SeedAdminAsync(cancellationToken);
         
         // Setup massive Iraqi demo data injection sequences
@@ -34,6 +36,39 @@ public class AdminSeedService
         
         // Create full timeline events utilizing the users + menus
         await SeedDemoOrderHistoryAsync(cancellationToken);
+    }
+
+    private async Task WipeApplicationDataAsync(CancellationToken cancellationToken)
+    {
+        await _dbContext.OrderItems.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.Orders.ExecuteDeleteAsync(cancellationToken);
+        
+        await _dbContext.TableCartItems.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.TableCarts.ExecuteDeleteAsync(cancellationToken);
+        
+        await _dbContext.BookingItems.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.Bookings.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.TableSessions.ExecuteDeleteAsync(cancellationToken);
+        
+        await _dbContext.RestaurantRatings.ExecuteDeleteAsync(cancellationToken);
+        
+        await _dbContext.RestaurantTables.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.MenuItems.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.MenuCategories.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.Restaurants.ExecuteDeleteAsync(cancellationToken);
+        
+        await _dbContext.OtpCodes.ExecuteDeleteAsync(cancellationToken);
+        await _dbContext.PendingRegistrations.ExecuteDeleteAsync(cancellationToken);
+
+        await _dbContext.UserAccounts
+            .Where(u => u.Id != AdminAuthenticationService.DevelopmentAdminId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        // Fail clearly if somehow mixed-language or stale demo records survived the purge
+        if (await _dbContext.Restaurants.AnyAsync(cancellationToken))
+        {
+            throw new InvalidOperationException("SEED FAILURE: The DB reset failed to clear existing restaurant data.");
+        }
     }
 
     private async Task SeedAdminAsync(CancellationToken cancellationToken)
@@ -167,6 +202,11 @@ public class AdminSeedService
                 restaurant.RejectionReason = null;
             }
 
+            if (restaurant.Latitude == 0 || restaurant.Longitude == 0)
+            {
+                throw new InvalidOperationException($"SEED FAILURE: Restaurant '{ownerDefinition.RestaurantName}' is missing real geographic coordinates.");
+            }
+
             foreach (var categoryDefinition in ownerDefinition.Categories)
             {
                 var category = await _dbContext.MenuCategories
@@ -247,6 +287,11 @@ public class AdminSeedService
                         menuItem.IsAvailable = true;
                         menuItem.DisplayOrder = itemDefinition.DisplayOrder;
                     }
+
+                    if (menuItem.MenuCategoryId != category.Id)
+                    {
+                        throw new InvalidOperationException($"SEED FAILURE: Invalid category-item relationship for '{menuItem.Name}'.");
+                    }
                 }
             }
 
@@ -261,8 +306,8 @@ public class AdminSeedService
         var hashedUserPassword = _passwordHashService.HashPassword(NormalUserSeedPassword);
         var nowUtc = DateTime.UtcNow;
 
-        // Generate 15 Active Normal Users
-        for (int i = 1; i <= 15; i++)
+        // Generate 3 Active Normal Users
+        for (int i = 1; i <= 3; i++)
         {
             var userGuid = Guid.Parse($"33333333-3333-3333-3333-{i:D12}");
             var phoneNumber = $"9647800000{i:D3}";

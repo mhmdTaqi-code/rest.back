@@ -44,6 +44,15 @@ public class OwnerOrdersController : ControllerBase
         catch (OwnerOrderWorkflowServiceException exception) { return BuildErrorResponse<OwnerOrderDetailDto>(exception); }
     }
 
+    [HttpPost("~/api/owner/orders/{orderId:guid}/checkout")]
+    [ProducesResponseType(typeof(ApiSuccessResponseDto<OwnerOrderCheckoutResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiSuccessResponseDto<OwnerOrderCheckoutResponseDto>>> CheckoutOrder(Guid orderId, CancellationToken cancellationToken)
+    {
+        var ownerId = GetOwnerId(); if (ownerId is null) return Unauthorized(BuildUnauthorizedResponse());
+        try { var response = await _ownerOrderWorkflowService.CheckoutOrderAsync(ownerId.Value, orderId, cancellationToken); return Ok(new ApiSuccessResponseDto<OwnerOrderCheckoutResponseDto> { Message = "Order completed and table released successfully.", Data = response }); }
+        catch (OwnerOrderWorkflowServiceException exception) { return BuildErrorResponse<OwnerOrderCheckoutResponseDto>(exception); }
+    }
+
     private Guid? GetOwnerId() => Guid.TryParse(User.FindFirstValue("userId"), out var parsed) ? parsed : null;
     private ApiErrorResponseDto BuildUnauthorizedResponse() => new() { Message = "Unauthorized owner context.", TraceId = HttpContext.TraceIdentifier };
     private ActionResult<ApiSuccessResponseDto<T>> BuildErrorResponse<T>(OwnerOrderWorkflowServiceException exception) => StatusCode(exception.StatusCode, new ApiErrorResponseDto { Message = exception.Message, Errors = exception.Errors, TraceId = HttpContext.TraceIdentifier });
