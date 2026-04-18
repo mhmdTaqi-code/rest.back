@@ -41,3 +41,15 @@ build_metadata.AdditionalFiles.CssScope =
 [C:/Users/ALI PC/Desktop/New folder (4)/SmartDiningSystem/backend/SmartDiningSystem.Api/Areas/Admin/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = QXJlYXNcQWRtaW5cVmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ALI PC/Desktop/New folder (4)/SmartDiningSystem/backend/SmartDiningSystem.Api/Views/AdminUI/Dashboard.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5VSVxEYXNoYm9hcmQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ALI PC/Desktop/New folder (4)/SmartDiningSystem/backend/SmartDiningSystem.Api/Views/AdminUI/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5VSVxMb2dpbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ALI PC/Desktop/New folder (4)/SmartDiningSystem/backend/SmartDiningSystem.Api/Views/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 

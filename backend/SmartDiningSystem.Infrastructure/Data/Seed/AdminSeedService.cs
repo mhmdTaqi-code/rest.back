@@ -9,7 +9,7 @@ namespace SmartDiningSystem.Infrastructure.Data.Seed;
 
 public class AdminSeedService
 {
-    private const string DevelopmentAdminSeedPassword = "DEV_ADMIN_COOKIE_AUTH_ONLY";
+    private const string DevelopmentAdminSeedPassword = "12";
     private const string DemoOwnerSeedPassword = "Owner123!";
     private const string NormalUserSeedPassword = "User123!";
 

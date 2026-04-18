@@ -72,15 +72,27 @@ public static class ServiceCollectionExtensions
             .AddPolicyScheme(AdminAuthenticationDefaults.PolicyScheme, "Smart Dining authentication", options =>
             {
                 options.ForwardDefaultSelector = context =>
-                    context.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase)
-                        ? AdminAuthenticationDefaults.CookieScheme
-                        : JwtBearerDefaults.AuthenticationScheme;
+                {
+                    if (context.Request.Path.StartsWithSegments("/mainadmin", StringComparison.OrdinalIgnoreCase))
+                        return AdminAuthenticationDefaults.CookieScheme;
+                    if (context.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase))
+                        return "AdminPortalAuth";
+                    return JwtBearerDefaults.AuthenticationScheme;
+                };
             })
             .AddCookie(AdminAuthenticationDefaults.CookieScheme, options =>
             {
                 options.Cookie.Name = "SmartDining.Admin";
                 options.LoginPath = "/mainadmin/login";
                 options.AccessDeniedPath = "/mainadmin/login";
+                options.SlidingExpiration = true;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            })
+            .AddCookie("AdminPortalAuth", options =>
+            {
+                options.Cookie.Name = "SmartDining.AdminPortal";
+                options.LoginPath = "/admin/login";
+                options.AccessDeniedPath = "/admin/login";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
             })

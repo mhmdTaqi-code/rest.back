@@ -32,6 +32,11 @@ public class AdminRestaurantService : IAdminRestaurantService
                 OwnerName = restaurant.Owner!.FullName,
                 OwnerPhoneNumber = restaurant.Owner!.PhoneNumber,
                 CreatedAtUtc = restaurant.CreatedAtUtc,
+                ImageUrl = restaurant.ImageUrl,
+                Latitude = restaurant.Latitude,
+                Longitude = restaurant.Longitude,
+                RestaurantDescription = restaurant.Description,
+                RestaurantAddress = restaurant.Address,
                 AverageRating = Math.Round(restaurant.Ratings.Select(rating => (double?)rating.Stars).Average() ?? 0d, 2),
                 TotalRatingsCount = restaurant.Ratings.Count()
             })
