@@ -78,17 +78,53 @@ public static class ApplicationBuilderExtensions
             throw;
         }
 
-        var adminSeedService = services.GetRequiredService<AdminSeedService>();
-        try
+        var configuration = services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var runSeed = configuration.GetValue<bool>("DatabaseSettings:RunSeedOnStartup", false);
+        var resetAndReseed = configuration.GetValue<bool>("DatabaseSettings:ResetAndReseedOnStartup", false);
+
+        if (!runSeed && !resetAndReseed)
         {
-            logger.LogInformation("Starting seed");
-            await adminSeedService.SeedAsync();
-            logger.LogInformation("Seed completed");
+            logger.LogInformation("Startup flow: migration only");
         }
-        catch (Exception exception)
+        else if (runSeed && !resetAndReseed)
         {
-            logger.LogError(exception, "Database seed failed. Schema validation will not run.");
-            throw;
+            logger.LogInformation("Startup flow: migration + non-destructive seed");
+        }
+        else if (resetAndReseed)
+        {
+            logger.LogWarning("Startup flow: migration + destructive reset/reseed. CRITICAL: Existing data will be explicitly wiped and recreated.");
+        }
+
+        if (resetAndReseed)
+        {
+            var adminSeedService = services.GetRequiredService<AdminSeedService>();
+            try
+            {
+                logger.LogWarning("Starting database wipe");
+                await adminSeedService.WipeApplicationDataAsync();
+                logger.LogInformation("Database wipe completed");
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Database wipe failed. Seed and schema validation will not run.");
+                throw;
+            }
+        }
+
+        if (runSeed || resetAndReseed)
+        {
+            var adminSeedService = services.GetRequiredService<AdminSeedService>();
+            try
+            {
+                logger.LogInformation("Starting seed");
+                await adminSeedService.SeedAsync();
+                logger.LogInformation("Seed completed");
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Database seed failed. Schema validation will not run.");
+                throw;
+            }
         }
 
         logger.LogInformation("Starting post-seed schema validation");

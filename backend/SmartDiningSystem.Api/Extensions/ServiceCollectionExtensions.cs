@@ -75,8 +75,6 @@ public static class ServiceCollectionExtensions
                 {
                     if (context.Request.Path.StartsWithSegments("/mainadmin", StringComparison.OrdinalIgnoreCase))
                         return AdminAuthenticationDefaults.CookieScheme;
-                    if (context.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase))
-                        return "AdminPortalAuth";
                     return JwtBearerDefaults.AuthenticationScheme;
                 };
             })
@@ -85,14 +83,6 @@ public static class ServiceCollectionExtensions
                 options.Cookie.Name = "SmartDining.Admin";
                 options.LoginPath = "/mainadmin/login";
                 options.AccessDeniedPath = "/mainadmin/login";
-                options.SlidingExpiration = true;
-                options.ExpireTimeSpan = TimeSpan.FromHours(8);
-            })
-            .AddCookie("AdminPortalAuth", options =>
-            {
-                options.Cookie.Name = "SmartDining.AdminPortal";
-                options.LoginPath = "/admin/login";
-                options.AccessDeniedPath = "/admin/login";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
             })

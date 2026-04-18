@@ -1,0 +1,324 @@
+@page
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal - Smart Dining System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .hidden { display: none !important; }
+        .card-custom { border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        
+        <!-- LOGIN SECTION -->
+        <div id="login-section" class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="text-center mb-4">
+                    <h2>Admin Portal</h2>
+                    <p class="text-muted">Sign in to manage the system</p>
+                </div>
+                <div class="card card-custom p-4">
+                    <div id="login-error" class="alert alert-danger hidden" role="alert"></div>
+                    <form id="login-form">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" id="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" id="password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" id="login-btn">
+                            Login <span class="spinner-border spinner-border-sm hidden" id="login-spinner"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard-section" class="hidden">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Admin Dashboard</h2>
+                <button class="btn btn-outline-danger" onclick="logout()">Logout</button>
+            </div>
+            
+            <div id="dashboard-message" class="alert hidden" role="alert"></div>
+            
+            <div class="card card-custom">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Pending Restaurant Requests</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Restaurant Name</th>
+                                    <th>Owner</th>
+                                    <th>Contact</th>
+                                    <th>Applied On</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="restaurants-tbody">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">Loading pending requests...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REJECT MODAL -->
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Reject Restaurant</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>Please provide a reason for rejecting this restaurant application.</p>
+            <div class="mb-3">
+                <label class="form-label">Rejection Reason</label>
+                <textarea id="reject-reason" class="form-control" rows="3" required></textarea>
+            </div>
+            <input type="hidden" id="reject-restaurant-id">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="submitReject()">Confirm Rejection</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const API_BASE = '/api';
+        
+        let rejectModalInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            rejectModalInstance = new bootstrap.Modal(document.getElementById('rejectModal'));
+            
+            const token = localStorage.getItem('admin_token');
+            if (token) {
+                showDashboard();
+                loadPendingRestaurants();
+            } else {
+                showLogin();
+            }
+
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await handleLogin();
+            });
+        });
+
+        async function handleLogin() {
+            const btn = document.getElementById('login-btn');
+            const spinner = document.getElementById('login-spinner');
+            const errorDiv = document.getElementById('login-error');
+            
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+                
+                const json = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(json.message || 'Login failed.');
+                }
+                
+                const data = json.data;
+                if (!data || !data.user || data.user.role !== 'Admin') {
+                    throw new Error('Access Denied: You do not have Administrator privileges.');
+                }
+                
+                localStorage.setItem('admin_token', data.accessToken);
+                showDashboard();
+                loadPendingRestaurants();
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_token');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            showLogin();
+        }
+
+        function showLogin() {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('dashboard-section').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            showMessage('', false);
+        }
+
+        async function loadPendingRestaurants() {
+            const tbody = document.getElementById('restaurants-tbody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span> Loading...</td></tr>';
+            
+            const token = localStorage.getItem('admin_token');
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurants/pending`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                    return;
+                }
+                
+                const json = await response.json();
+                if (!response.ok) throw new Error(json.message || 'Failed to load data.');
+                
+                renderTable(json.data);
+            } catch (err) {
+                showMessage(`Error: ${err.message}`, true);
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load restaurants</td></tr>';
+            }
+        }
+
+        function renderTable(restaurants) {
+            const tbody = document.getElementById('restaurants-tbody');
+            if (!restaurants || restaurants.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No pending restaurant applications.</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            for (const r of restaurants) {
+                const date = new Date(r.createdAtUtc).toLocaleDateString();
+                html += `
+                    <tr>
+                        <td class="align-middle fw-bold">${escapeHtml(r.restaurantName)}</td>
+                        <td class="align-middle">${escapeHtml(r.ownerName)}</td>
+                        <td class="align-middle">${escapeHtml(r.ownerPhoneNumber)}</td>
+                        <td class="align-middle">${date}</td>
+                        <td class="align-middle text-end">
+                            <button class="btn btn-sm btn-success me-1" onclick="approveRestaurant('${r.id}')">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="openRejectModal('${r.id}')">Reject</button>
+                        </td>
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = html;
+        }
+
+        async function approveRestaurant(id) {
+            if (!confirm('Are you sure you want to approve this restaurant?')) return;
+            
+            const token = localStorage.getItem('admin_token');
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurants/${id}/approve`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const json = await response.json();
+                if (!response.ok) throw new Error(json.message || 'Approval failed.');
+                
+                showMessage('Restaurant approved successfully.', false);
+                loadPendingRestaurants();
+            } catch (err) {
+                showMessage(`Error: ${err.message}`, true);
+            }
+        }
+
+        function openRejectModal(id) {
+            document.getElementById('reject-restaurant-id').value = id;
+            document.getElementById('reject-reason').value = '';
+            rejectModalInstance.show();
+        }
+
+        async function submitReject() {
+            const id = document.getElementById('reject-restaurant-id').value;
+            const reason = document.getElementById('reject-reason').value.trim();
+            
+            if (!reason) {
+                alert('Please provide a rejection reason.');
+                return;
+            }
+            
+            const token = localStorage.getItem('admin_token');
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurants/${id}/reject`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ rejectionReason: reason })
+                });
+                
+                const json = await response.json();
+                if (!response.ok) throw new Error(json.message || 'Rejection failed.');
+                
+                rejectModalInstance.hide();
+                showMessage('Restaurant rejected successfully.', false);
+                loadPendingRestaurants();
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+
+        function showMessage(msg, isError) {
+            const div = document.getElementById('dashboard-message');
+            if (!msg) {
+                div.classList.add('hidden');
+                return;
+            }
+            div.textContent = msg;
+            div.className = `alert ${isError ? 'alert-danger' : 'alert-success'}`;
+            div.classList.remove('hidden');
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+         }
+    </script>
+</body>
+</html>

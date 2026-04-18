@@ -24,8 +24,6 @@ public class AdminSeedService
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        await WipeApplicationDataAsync(cancellationToken);
-
         await SeedAdminAsync(cancellationToken);
         
         // Setup massive Iraqi demo data injection sequences
@@ -38,7 +36,7 @@ public class AdminSeedService
         await SeedDemoOrderHistoryAsync(cancellationToken);
     }
 
-    private async Task WipeApplicationDataAsync(CancellationToken cancellationToken)
+    public async Task WipeApplicationDataAsync(CancellationToken cancellationToken = default)
     {
         await _dbContext.OrderItems.ExecuteDeleteAsync(cancellationToken);
         await _dbContext.Orders.ExecuteDeleteAsync(cancellationToken);

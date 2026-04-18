@@ -15,6 +15,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("OpenCors", policy =>
@@ -90,16 +91,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.MapControllerRoute(
-    name: "admin_login",
-    pattern: "mainadmin/login",
-    defaults: new { area = "Admin", controller = "Auth", action = "Login" });
-
-app.MapControllerRoute(
-    name: "admin_area",
-    pattern: "mainadmin/{controller=Dashboard}/{action=Index}/{id?}",
-    defaults: new { area = "Admin" });
+app.MapRazorPages();
 
 app.Run();
 
